@@ -56,14 +56,16 @@ public extension Server {
         
         case method(matches: Request.Method)
         case path(matches: String) // TODO: Handle wildcards
-        case contains(header: Request.Header) // TODO: Handle only responding after a number of requests, or changing the response after a number of requests
+        case headers(contain: Request.Header)
+        case queryParameters(contain: Request.QueryParameter)
         case body(matches: Data) // TOOD: Handle queries
         
         func verify(_ request: Request) -> Bool {
             switch self {
                 case .method(matches: let method): return request.method == method
                 case .path(matches: let path): return request.path == path
-                case .contains(header: let header): return request.headers.contains(header)
+                case .headers(contain: let header): return request.headers.contains(header)
+                case .queryParameters(contain: let parameter): fatalError()
                 case .body(matches: let body): return request.body == body
             }
         }
