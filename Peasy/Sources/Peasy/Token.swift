@@ -11,11 +11,11 @@ typealias Token = Int32
 typealias Outcome = Int32
 
 extension Token {
-    
-    @discardableResult
-    func setNotBlocking() -> Outcome {
-        let flags = fcntl(self, F_GETFL, 0)
-        return fcntl(self, F_SETFL, flags | O_NONBLOCK)
-    }
-    
+	
+	@discardableResult
+	func setNotBlocking() -> Outcome {
+		let flags = fcntl(self, F_GETFL, 0)
+		return fcntl(self, F_SETFL, flags | O_NONBLOCK)
+	}
+	
 }

@@ -15,7 +15,7 @@ class Loop { // TODO: Maybe called a pipe
 	private let selector = Selector()
 	private var callbacks: [Int32: () -> Void] = [:]
 	private var writeCallbacks: [Int32: () -> Void] = [:]
-    private var shouldRun = true
+	private var shouldRun = true
 	
 	init() {
 		var inOut = [Int32](repeating: 0, count: 2) // TODO: Could be better
@@ -23,8 +23,8 @@ class Loop { // TODO: Maybe called a pipe
 			pipe($0.baseAddress)
 		}
 		inTag = inOut[0]
-        outTag = inOut[1]
-        inTag.setNotBlocking()
+		outTag = inOut[1]
+		inTag.setNotBlocking()
 		outTag.setNotBlocking()
 	}
 	

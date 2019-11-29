@@ -9,30 +9,30 @@
 import Foundation
 
 public struct Request: Hashable {
-    
-    public enum Method: String {
-        case get = "GET"
-        case post = "POST"
-        case put = "PUT"
-        case delete = "DELETE" // TODO
-    }
-    
-    public struct QueryParameter: Hashable {
-        let name: String
-        let value: String?
-        
-        public init(name: String, value: String?) {
-            self.name = name
-            self.value = value
-        }
-    }
-    
-    public typealias Header = Response.Header
-    
-    public let method: Method
-    public let headers: [Header]
-    public let path: String
-    public let queryParameters: [QueryParameter]
-    public let body: Data
-    
+	
+	public enum Method: String {
+		case get = "GET"
+		case post = "POST"
+		case put = "PUT"
+		case delete = "DELETE" // TODO
+	}
+	
+	public struct QueryParameter: Hashable {
+		let name: String
+		let value: String?
+		
+		public init(name: String, value: String?) {
+			self.name = name
+			self.value = value
+		}
+	}
+	
+	public typealias Header = Response.Header
+	
+	public let method: Method
+	public let headers: [Header]
+	public let path: String
+	public let queryParameters: [QueryParameter]
+	public let body: Data
+	
 }

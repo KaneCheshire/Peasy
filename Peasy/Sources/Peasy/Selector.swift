@@ -55,7 +55,7 @@ class Selector {
 	}
 	
 	func select() -> [Int32: Set<Int32>] {
-        let timeout: TimeInterval = 0.1
+		let timeout: TimeInterval = 0.1
 		var integer = 0.0
 		let nsec = Int(modf(timeout, &integer) * Double(NSEC_PER_SEC))
 		var timeSpec = timespec(tv_sec: Int(timeout), tv_nsec: nsec)

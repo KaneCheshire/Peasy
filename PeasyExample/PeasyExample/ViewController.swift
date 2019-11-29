@@ -10,17 +10,17 @@ import UIKit
 import Peasy
 
 class ViewController: UIViewController {
-
-    let server = Server()
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        server.start()
-        let response = Response(status: .ok)
-        let param = Request.QueryParameter(name: "test", value: "testvalue")
-        server.respond(with: response, when: .path(matches: "/another-test"), .queryParameters(contain: param))
-    }
-
-
+	
+	let server = Server()
+	
+	override func viewDidLoad() {
+		super.viewDidLoad()
+		server.start()
+		let response = Response(status: .ok)
+		let param = Request.QueryParameter(name: "test", value: "testvalue")
+		server.respond(with: response, when: .path(matches: "/another-test"), .queryParameters(contain: param))
+	}
+	
+	
 }
 
