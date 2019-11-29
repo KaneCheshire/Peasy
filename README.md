@@ -1,5 +1,7 @@
 # Peasy
 
+[WORK IN PROGRESS!]
+
 Peasy is a lightweight mock server written purely in Swift,
 that you can run directly in your UI tests, with no need for any external
 process to be spun up as part of the tests.
