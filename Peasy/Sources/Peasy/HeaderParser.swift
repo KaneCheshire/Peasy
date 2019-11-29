@@ -85,11 +85,17 @@ struct RequestParser {
         var lines = header.split(separator: "\r\n")
         let status = lines.removeFirst()
         let statusComponents = status.split(separator: " ")
-        let method = String(statusComponents[0])
-        let path = String(statusComponents[1])
+        let methodRaw = String(statusComponents[0])
+        let method = Request.Method(rawValue: methodRaw)!
+        let pathWithQuery = String(statusComponents[1])
         let headers = parseHeaders(lines.map { String($0) }) // TODO: Might not need to map
-        let queryParams = parseQueryParams(path)
-        return (Request.Method(rawValue: method)!, path, headers, queryParams)
+        let path = parsePath(pathWithQuery)
+        let queryParams = parseQueryParams(pathWithQuery)
+        return (method, path, headers, queryParams)
+    }
+    
+    private func parsePath(_ pathWithQuery: String) -> String {
+        return String(pathWithQuery.split(separator: "?").first!)
     }
     
     private func parseQueryParams(_ path: String) -> [Request.QueryParameter] {
