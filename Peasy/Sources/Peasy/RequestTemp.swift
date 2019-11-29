@@ -20,6 +20,11 @@ public struct Request: Hashable {
     public struct QueryParameter: Hashable {
         let name: String
         let value: String?
+        
+        public init(name: String, value: String?) {
+            self.name = name
+            self.value = value
+        }
     }
     
     public typealias Header = Response.Header

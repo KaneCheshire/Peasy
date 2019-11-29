@@ -15,8 +15,10 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
         server.start()
+        let response = Response(status: .ok)
+        let param = Request.QueryParameter(name: "test", value: "testvalue")
+        server.respond(with: response, when: .path(matches: "/another-test"), .queryParameters(contain: param))
     }
 
 

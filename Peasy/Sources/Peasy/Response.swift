@@ -20,6 +20,11 @@ public struct Response: Hashable {
         let name: String
         let value: String
         
+        public init(name: String, value: String) {
+            self.name = name
+            self.value = value
+        }
+        
         public enum Name: String {
             case contentType = "Content-Type"
             case userAgent = "cache-control" // TODO: Might just be request only which would be a good case for two different Header structs
