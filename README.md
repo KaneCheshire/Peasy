@@ -29,3 +29,8 @@ class MyUITest: XCTestCase {
 
 }
 ```
+
+>Peasy was hugely inspired by Envoy's Embassy server, but it does too much and
+is far too complicated for what I want to achieve. Peasy's interface is designed
+to be the simplest and most accessible it can be.
+>Without Envoy's hard work, Peasy would not exist.
