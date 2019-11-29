@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -14,6 +14,7 @@
 		C3D12D802391389200A05B05 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C3D12D7F2391389200A05B05 /* Assets.xcassets */; };
 		C3D12D832391389200A05B05 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C3D12D812391389200A05B05 /* LaunchScreen.storyboard */; };
 		C3D12D8E2391389200A05B05 /* PeasyExampleUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D12D8D2391389200A05B05 /* PeasyExampleUITests.swift */; };
+		C3D12D9C2391462700A05B05 /* Peasy in Frameworks */ = {isa = PBXBuildFile; productRef = C3D12D9B2391462700A05B05 /* Peasy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -45,6 +46,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C3D12D9C2391462700A05B05 /* Peasy in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -64,6 +66,7 @@
 				C3D12D752391389100A05B05 /* PeasyExample */,
 				C3D12D8C2391389200A05B05 /* PeasyExampleUITests */,
 				C3D12D742391389100A05B05 /* Products */,
+				C3D12D9823913BE500A05B05 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -99,6 +102,13 @@
 			path = PeasyExampleUITests;
 			sourceTree = "<group>";
 		};
+		C3D12D9823913BE500A05B05 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -115,6 +125,9 @@
 			dependencies = (
 			);
 			name = PeasyExample;
+			packageProductDependencies = (
+				C3D12D9B2391462700A05B05 /* Peasy */,
+			);
 			productName = PeasyExample;
 			productReference = C3D12D732391389100A05B05 /* PeasyExample.app */;
 			productType = "com.apple.product-type.application";
@@ -465,6 +478,13 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C3D12D9B2391462700A05B05 /* Peasy */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Peasy;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C3D12D6B2391389100A05B05 /* Project object */;
 }

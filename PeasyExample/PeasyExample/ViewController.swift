@@ -7,12 +7,16 @@
 //
 
 import UIKit
+import Peasy
 
 class ViewController: UIViewController {
 
+    let server = Server()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
+        server.start()
     }
 
 
