@@ -97,7 +97,7 @@ private extension Server {
 				return nonMatchingRule == nil
 			}
 			if let response = config?.response {
-				connection.respond(to: request, with: Data(response.httpRep.utf8)) { [weak self] in
+				connection.respond(to: request, with: response.httpRep) { [weak self] in
 					if let config = config, config.removeAfterResponding, let index = self?.configurations.firstIndex(of: config) {
 						self?.configurations.remove(at: index)
 					}

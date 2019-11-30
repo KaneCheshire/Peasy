@@ -33,9 +33,9 @@ public struct Response: Hashable {
 	
 	let status: Status
 	let headers: [Header]
-	let body: String // TODO: Support sending image data
+	let body: Data // TODO: Support sending image data
 	
-	public init(status: Status, headers: [Header] = [], body: String = "") {
+	public init(status: Status, headers: [Header] = [], body: Data = Data()) {
 		self.status = status
 		self.headers = headers
 		self.body = body
@@ -54,11 +54,12 @@ public extension Response.Header {
 
 extension Response {
 	
-	var httpRep: String {
+	var httpRep: Data {
 		let combinedHeaders = [Header(name: "Connection", value: "Closed"),
 													 Header(name: "Server", value: "Sprite"),
 													 Header(name: "Content-Type", value: "text/html; charset=UTF-8")] + headers
-		return "HTTP/1.1 \(status.httpRep)\r\n\(combinedHeaders.httpRep)\r\n\r\n\(body)"
+		let string = "HTTP/1.1 \(status.httpRep)\r\n\(combinedHeaders.httpRep)\r\n\r\n"
+        return Data(string.utf8) + body
 	}
 	
 }

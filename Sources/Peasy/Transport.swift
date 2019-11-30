@@ -33,27 +33,20 @@ class Transport {
 	func close() {
         guard !closed else { return }
         print("Closing transport...")
-		socket.cleanup()
+		socket.close()
         closed = true
         eventHandler(.closed)
 	}
 	
-	func write(_ data: Data) {
-		guard !closed else { return }
-		switch socket.send(data) {
-        case .success(let bytesSent):
-            guard data.count == bytesSent else { fatalError() }
-            print("Buffer is empty, removing writer")
-            close()
-        case .failure(.number(let number)):
-            switch number {
-            case EAGAIN: fatalError()
-            case EPROTOTYPE, EPIPE: close()
-            default: fatalError()
-            }
+    func write(_ data: Data) {
+        guard !closed else { return }
+        print("Writing data", data.count)
+        switch socket.send(data) {
+            case .success(let remainingData): remainingData.isEmpty ? close() : write(remainingData)
+            case .failure: close()
         }
-	}
-	
+    }
+    
 	private func handleRead() {
 		guard !closed else { return }
 		switch socket.receive(size: 1024)  { // TODO: 1024 Repeated a bit
