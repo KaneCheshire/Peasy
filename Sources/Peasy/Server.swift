@@ -89,26 +89,21 @@ private extension Server {
 		connections.insert(connection)
 	}
 	
-	private func handle(_ event: Connection.Event, connection: Connection) {
-		switch event {
-		case .requestReceived(let request):
-			let config = configurations.first { config in
-				let nonMatchingRule = config.rules.first { $0.verify(request) == false }
-				return nonMatchingRule == nil
-			}
-			if let response = config?.response {
-				connection.respond(to: request, with: response.httpRep) { [weak self] in
-					if let config = config, config.removeAfterResponding, let index = self?.configurations.firstIndex(of: config) {
-						self?.configurations.remove(at: index)
-					}
-                    // TODO: CLose connection here?
-				}
-			} else {
-				connection.close()
-			}
-		case .closed:
-			connections.remove(connection)
-		}
+	private func handle(_ request: Request, connection: Connection) {
+        let config = configurations.first { config in
+            let nonMatchingRule = config.rules.first { $0.verify(request) == false }
+            return nonMatchingRule == nil
+        }
+        if let response = config?.response {
+            connection.respond(to: request, with: response.httpRep) { [weak self] in
+                if let config = config, config.removeAfterResponding, let index = self?.configurations.firstIndex(of: config) {
+                    self?.configurations.remove(at: index)
+                }
+                // TODO: CLose connection here?
+            }
+        } else {
+            connection.close()
+        }
 	}
 	
 }

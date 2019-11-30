@@ -11,20 +11,15 @@ import UIKit
 
 final class Connection {
 	
-	typealias EventHandler = (Event, Connection) -> Void
-	
-	enum Event {
-		case requestReceived(Request)
-		case closed
-	}
-	
+	typealias RquestHandler = (Request, Connection) -> Void
+
 	private let uuid = UUID()
-	private let handler: EventHandler
+	private let handler: RquestHandler
     private let client: Socket
 	private var parser = RequestParser()
     private var inputLoop: InputLoop?
 	
-	init(client: Socket, handler: @escaping EventHandler) {
+	init(client: Socket, handler: @escaping RquestHandler) {
         self.client = client
         self.handler = handler
         inputLoop = InputLoop(socket: client) { [weak self] in // TODO: Not convinced this loop is even needed now
@@ -51,7 +46,7 @@ final class Connection {
     
     private func handle(_ data: Data) {
         switch parser.parse(data) {
-            case .finished(let request): handler(.requestReceived(request), self)
+            case .finished(let request): handler(request, self)
             case .notStarted, .receivingHeader, .receivingBody: break
         }
     }
