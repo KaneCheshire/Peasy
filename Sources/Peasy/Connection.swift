@@ -34,10 +34,6 @@ final class Connection {
         }
 	}
 	
-	func close() {
-		client.close()
-	}
-	
     private func handleDataAvailable() {
         switch client.read() {
             case .success(let data): handle(data)

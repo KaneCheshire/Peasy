@@ -100,7 +100,7 @@ private extension Server {
                 configurations.remove(at: index)
             }
         }
-        connection.close()
+        connections.remove(connection)
 	}
 	
 }

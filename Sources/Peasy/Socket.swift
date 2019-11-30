@@ -18,12 +18,9 @@ final class Socket {
 	}
 	
 	deinit {
-		close()
-	}
-	
-	func close() {
+        print("Closing socket", tag)
 		shutdown(tag, SHUT_WR)
-        Darwin.close(tag)
+        close(tag)
 	}
 	
 	func bind(port: Int, interface: String) {
