@@ -24,7 +24,7 @@ public final class Server {
         socket.bind(port: port, interface: interface)
         socket.listen()
         loop = InputLoop(socket: socket) { [weak self] in
-            self?.handleIncomingConnection(port: port, interface: interface)
+            self?.handleIncomingConnection()
         }
         state = .running(port: port, interface: interface)
     }
@@ -38,9 +38,33 @@ public final class Server {
         guard case .running = self.state else { fatalError("Not running") }
         print("Stopping...")
         loop = nil
+        connections.removeAll()
+        configurations.removeAll()
         // TODO: Unbind port and stop listening?
         self.state = .notRunning
 	}
+    
+    private func handleIncomingConnection() {
+        let clientSocket = socket.accept()
+        let connection = Connection(client: clientSocket) { [weak self] event, connection in
+            self?.handle(event, connection: connection)
+        }
+        connections.insert(connection)
+    }
+    
+    private func handle(_ request: Request, connection: Connection) {
+        let config = configurations.first { config in
+            let nonMatchingRule = config.rules.first { $0.verify(request) == false }
+            return nonMatchingRule == nil
+        }
+        if let config = config {
+            connection.respond(to: request, with: config.response)
+            if config.removeAfterResponding, let index = configurations.firstIndex(of: config) {
+                configurations.remove(at: index)
+            }
+        }
+        connections.remove(connection)
+    }
 	
 }
 
@@ -79,28 +103,6 @@ private extension Server {
 		let response: Response
 		let rules: [Rule]
 		let removeAfterResponding: Bool
-	}
-	
-	private func handleIncomingConnection(port: Int, interface: String) {
-		let clientSocket = socket.accept()
-		let connection = Connection(client: clientSocket) { [weak self] event, connection in
-			self?.handle(event, connection: connection)
-		}
-		connections.insert(connection)
-	}
-	
-	private func handle(_ request: Request, connection: Connection) {
-        let config = configurations.first { config in
-            let nonMatchingRule = config.rules.first { $0.verify(request) == false }
-            return nonMatchingRule == nil
-        }
-        if let config = config {
-            connection.respond(to: request, with: config.response)
-            if config.removeAfterResponding, let index = configurations.firstIndex(of: config) {
-                configurations.remove(at: index)
-            }
-        }
-        connections.remove(connection)
 	}
 	
 }
