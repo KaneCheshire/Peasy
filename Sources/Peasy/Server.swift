@@ -40,7 +40,7 @@ public final class Server {
         loop = nil
         connections.removeAll()
         configurations.removeAll()
-        // TODO: Unbind port and stop listening?
+        // TODO: Unbind port and stop listening? Test what happens if it's spun up again straight after
         self.state = .notRunning
 	}
     
