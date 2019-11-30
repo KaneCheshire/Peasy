@@ -101,6 +101,7 @@ private extension Server {
 					if let config = config, config.removeAfterResponding, let index = self?.configurations.firstIndex(of: config) {
 						self?.configurations.remove(at: index)
 					}
+                    // TODO: CLose connection here?
 				}
 			} else {
 				connection.close()

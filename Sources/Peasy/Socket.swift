@@ -8,9 +8,9 @@
 
 import Foundation
 
-class Socket {
+final class Socket {
 	
-	private let tag: Int32
+    let tag: Int32
 	
 	init(tag: Int32 = socket(AF_INET6, SOCK_STREAM, 0)) {
 		self.tag = tag
@@ -55,28 +55,21 @@ class Socket {
 		return Socket(tag: tag)
 	}
 	
-	enum ReadError: Error {
-		case number(Int32)
+	func read() -> Result<Data, DarwinError> {
+        let maxBytes = 1024
+		var data = Data(count: maxBytes)
+        let bytesRead = data.withUnsafeMutableBytes { recv(tag, $0, maxBytes, 0) }
+        guard bytesRead >= 0 else { return .failure(.init()) }
+        return .success(data[..<bytesRead]) // TODO: If data is empty it's finished, should handle that
 	}
-	
-	func receive(size: Int) -> Result<Data, ReadError> {
-		var data = Data(count: size)
-        let bytesRead = data.withUnsafeMutableBytes { recv(tag, $0, size, 0) }
-        guard bytesRead >= 0 else { return .failure(.number(errno)) }
-        return .success(data[..<bytesRead])
-	}
-	
-	enum WriteError: Error {
-		case number(Int32)
-	}
-	
-	func send(_ data: Data) -> Result<Data, WriteError> {
+    
+    func write(_ data: Data) -> Result<Void, DarwinError> {
         var data = data
-		let bytesSent = data.withUnsafeBytes { Darwin.send(tag, $0, data.count, 0) }
-        guard bytesSent >= 0 else { return .failure(.number(errno)) }
+        let bytesSent = data.withUnsafeBytes { Darwin.send(tag, $0, data.count, 0) }
+        guard bytesSent >= 0 else { return .failure(.init()) }
         data.removeSubrange(..<bytesSent)
-        return .success(data)
-	}
+        return data.isEmpty ? .success(()) : write(data)
+    }
 	
 }
 

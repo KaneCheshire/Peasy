@@ -36,6 +36,7 @@ final class InputLoop {
         var events = [Darwin.kevent(ident: UInt(socket.tag), filter: Int16(EVFILT_READ), flags: UInt16(state), fflags: UInt32(0), data: Int(0), udata: nil)]
         let eventCount = events.count
         let success = events.withUnsafeMutableBufferPointer { kevent(queue, $0.baseAddress, Int32(eventCount), nil, 0, nil) >= 0 }
+        guard success else { fatalError(DarwinError().message) }
     }
     
     private func events() -> Set<Int32> {

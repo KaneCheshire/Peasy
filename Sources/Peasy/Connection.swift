@@ -9,7 +9,7 @@
 import Foundation
 import UIKit
 
-class Connection {
+final class Connection {
 	
 	typealias EventHandler = (Event, Connection) -> Void
 	
@@ -20,40 +20,42 @@ class Connection {
 	
 	private let uuid = UUID()
 	private let handler: EventHandler
-	private var transport: Transport! // TODO: Not ideal
+    private let client: Socket
 	private var parser = RequestParser()
+    private var inputLoop: InputLoop?
 	
 	init(client: Socket, handler: @escaping EventHandler) {
-		self.handler = handler
-		self.transport = Transport(socket: client) { [weak self] event in
-			switch event {
-			case .dataReceived(let data):
-				self?.handle(data)
-			case .closed:
-				guard let self = self else { return }
-				handler(.closed, self)
-			}
-		}
+        self.client = client
+        self.handler = handler
+        inputLoop = InputLoop(socket: client) { [weak self] in // TODO: Not convinced this loop is even needed now
+            self?.handleDataAvailable()
+        }
 	}
 	
 	func respond(to request: Request, with data: Data, completion: @escaping () -> Void) {
-		transport.write(data)
-		close()
+        client.write(data)
+		close() // TODO: Maybe all managed from the Server?
 		completion()
 	}
 	
 	func close() {
-		transport.close()
+		client.close()
 	}
 	
-	private func handle(_ data: Data) {
-		switch parser.parse(data) {
-		case .finished(let request):
-			handler(.requestReceived(request), self)
-		case .notStarted, .receivingHeader, .receivingBody: break
-		}
-	}
-	
+    private func handleDataAvailable() {
+        switch client.read() {
+            case .success(let data): handle(data)
+            case .failure(let error): fatalError(error.message)
+        }
+    }
+    
+    private func handle(_ data: Data) {
+        switch parser.parse(data) {
+            case .finished(let request): handler(.requestReceived(request), self)
+            case .notStarted, .receivingHeader, .receivingBody: break
+        }
+    }
+    
 }
 
 extension Connection: Hashable {
