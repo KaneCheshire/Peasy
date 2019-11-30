@@ -23,9 +23,9 @@ class Connection {
 	private var transport: Transport! // TODO: Not ideal
 	private var parser = RequestParser()
 	
-	init(client: Socket, loop: Loop, handler: @escaping EventHandler) {
+	init(client: Socket, handler: @escaping EventHandler) {
 		self.handler = handler
-		self.transport = Transport(socket: client, loop: loop) { [weak self] event in
+		self.transport = Transport(socket: client) { [weak self] event in
 			switch event {
 			case .dataReceived(let data):
 				self?.handle(data)

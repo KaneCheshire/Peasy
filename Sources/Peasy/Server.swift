@@ -12,40 +12,34 @@ public final class Server {
 	
 	private var state: State = .notRunning
 	private let socket = Socket()
-	private let loop = Loop()
+    private var loop: InputLoop?
 	private var connections: Set<Connection> = []
 	private var configurations: [Configuration] = []
 	
 	public init() {}
-	
-	public func start(port: Int = 8881, interface: String = "::1") {
-		DispatchQueue.global(qos: .background).async {
-			guard case .notRunning = self.state else { fatalError("Already started") }
-			print("Starting server...", port, interface)
-			self.socket.bind(port: port, interface: interface)
-			self.socket.listen()
-			self.loop.setReader(self.socket.tag) { [weak self] in
-				self?.handleIncomingConnection(port: port, interface: interface)
-			}
-			self.loop.run()
-			self.state = .running(port: port, interface: interface)
-		}
-	}
-	
+    
+    public func start(port: Int = 8881, interface: String = "::1") {
+        guard case .notRunning = state else { fatalError("Already started") }
+        print("Starting server...", port, interface)
+        socket.bind(port: port, interface: interface)
+        socket.listen()
+        loop = InputLoop(socket: socket) { [weak self] in
+            self?.handleIncomingConnection(port: port, interface: interface)
+        }
+        state = .running(port: port, interface: interface)
+    }
+    
 	public func respond(with response: Response, when rules: Rule..., removeAfterResponding: Bool = false) {
 		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding)
 		configurations.append(config)
 	}
 	
-	public func stop() {
-		DispatchQueue.global(qos: .background).async {
-			guard case .running = self.state else { fatalError("Not running") }
-			print("Stopping...")
-			self.loop.removeReader(self.socket.tag)
-			self.loop.stop()
-			// TODO: Unbind port and stop listening?
-			self.state = .notRunning
-		}
+    public func stop() {
+        guard case .running = self.state else { fatalError("Not running") }
+        print("Stopping...")
+        loop = nil
+        // TODO: Unbind port and stop listening?
+        self.state = .notRunning
 	}
 	
 }
@@ -89,7 +83,7 @@ private extension Server {
 	
 	private func handleIncomingConnection(port: Int, interface: String) {
 		let clientSocket = socket.accept()
-		let connection = Connection(client: clientSocket, loop: loop) { [weak self] event, connection in
+		let connection = Connection(client: clientSocket) { [weak self] event, connection in
 			self?.handle(event, connection: connection)
 		}
 		connections.insert(connection)
