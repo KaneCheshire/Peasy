@@ -94,16 +94,13 @@ private extension Server {
             let nonMatchingRule = config.rules.first { $0.verify(request) == false }
             return nonMatchingRule == nil
         }
-        if let response = config?.response {
-            connection.respond(to: request, with: response.httpRep) { [weak self] in
-                if let config = config, config.removeAfterResponding, let index = self?.configurations.firstIndex(of: config) {
-                    self?.configurations.remove(at: index)
-                }
-                // TODO: CLose connection here?
+        if let config = config {
+            connection.respond(to: request, with: config.response)
+            if config.removeAfterResponding, let index = configurations.firstIndex(of: config) {
+                configurations.remove(at: index)
             }
-        } else {
-            connection.close()
         }
+        connection.close()
 	}
 	
 }

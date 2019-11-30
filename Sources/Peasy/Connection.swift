@@ -27,10 +27,11 @@ final class Connection {
         }
 	}
 	
-	func respond(to request: Request, with data: Data, completion: @escaping () -> Void) {
-        client.write(data)
-		close() // TODO: Maybe all managed from the Server?
-		completion()
+	func respond(to request: Request, with response: Response) {
+        switch client.write(response.httpRep) {
+            case .success: break
+            case .failure(let error): fatalError(error.message)
+        }
 	}
 	
 	func close() {
