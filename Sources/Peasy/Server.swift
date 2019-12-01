@@ -16,14 +16,9 @@ public final class Server {
 	
 	public init() {}
 	
-	public func start(port: Int = 8881) {
+	public func start(port: Int = 8880) {
 		switch state {
-			case .notRunning:
-				let socket = Socket()
-				socket.bind(port: port)
-				let eventListener = EventListener(socket: socket) { [weak self] in self?.handleIncomingConnection() }
-				state = .running(socket, eventListener)
-				print("Started server on port", port)
+			case .notRunning: createSocket(bindingTo: port)
 			case .running: fatalError("Cannot start server because it's already started.")
 		}
 	}
@@ -44,6 +39,14 @@ public final class Server {
 				state = .notRunning
 			case .notRunning: fatalError("Cannot stop server because it's not running.")
 		}
+	}
+	
+	private func createSocket(bindingTo port: Int) {
+		let socket = Socket()
+		socket.bind(port: port)
+		let eventListener = EventListener(socket: socket) { [weak self] in self?.handleIncomingConnection() }
+		state = .running(socket, eventListener)
+		print("Started server on port", port)
 	}
 	
 	private func handleIncomingConnection() {

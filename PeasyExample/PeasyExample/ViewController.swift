@@ -17,15 +17,18 @@ class ViewController: UIViewController {
 		super.viewDidLoad()
 		server.start()
 		
-		let image = UIImage(named: "sh")!
-		let img = image.pngData()!
-		let contentType = Response.Header(name: .contentType, value: "image/png")
-		let response = Response(status: .ok, headers: [contentType], body: img)
+		let response: Response = .image
 		server.respond(with: response, when: .path(matches: "/another-test"))
-		
-		
-		let server = Server()
-		server.start()
 	}
+	
+}
+
+extension Response {
+	
+	static let image: Response = {
+		let image = UIImage(named: "sh")!.pngData()!
+		let contentType = Response.Header(name: .contentType, value: "image/png")
+		return Response(status: .ok, headers: [contentType], body: image)
+	}()
 	
 }

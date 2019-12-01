@@ -18,13 +18,13 @@ class MyUITest: XCTestCase {
   let server = Server()
 
   override func setUp() {
-    server.start()
+    server.start() // Default port is 8880
     let ok = Response(status: .ok)
     server.respond(with: ok, when: .path(matches: "/"))
   }
 
   func test_someStuff() {
-    // Run your tests that cause the app to call http://localhost:8881/
+    // Run your tests that cause the app to call http://localhost:8880/
   }
 
 }
