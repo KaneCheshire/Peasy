@@ -32,6 +32,11 @@ final class Connection {
 		}
 	}
 	
+	deinit {
+		inputLoop?.close()
+		client.close()
+	}
+	
 	func respond(to request: Request, with response: Response) {
 		switch client.write(response.httpRep) {
 			case .success: break
