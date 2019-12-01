@@ -57,7 +57,7 @@ final class Socket {
 		var data = Data(count: maxBytes)
         let bytesRead = data.withUnsafeMutableBytes { recv(tag, $0, maxBytes, 0) }
         guard bytesRead >= 0 else { return .failure(.init()) }
-        return .success(data[..<bytesRead]) // TODO: If data is empty it's finished, should handle that
+        return .success(data[..<bytesRead])
 	}
     
     func write(_ data: Data) -> Result<Void, DarwinError> {

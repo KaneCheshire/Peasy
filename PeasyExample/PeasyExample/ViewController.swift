@@ -16,6 +16,7 @@ class ViewController: UIViewController {
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		server.start()
+        
         let image = UIImage(named: "sh")!
         let img = image.pngData()!
         let contentType = Response.Header(name: .contentType, value: "image/png")

@@ -18,7 +18,9 @@ public final class Server {
 	
 	public init() {}
     
-    public func start(port: Int = 8881, interface: String = "::1") {
+    private var pending: Socket?
+    
+    public func start(port: Int = 8881, interface: String = "::1") { // TODO: Turn interface into an enum for localhost etc
         guard case .notRunning = state else { fatalError("Already started") }
         print("Starting server...", port, interface)
         socket.bind(port: port, interface: interface)
@@ -47,23 +49,27 @@ public final class Server {
     private func handleIncomingConnection() {
         let clientSocket = socket.accept()
         let connection = Connection(client: clientSocket) { [weak self] event, connection in
-            self?.handle(event, connection: connection)
+            self?.handle(event, for: connection)
         }
         connections.insert(connection)
     }
     
-    private func handle(_ request: Request, connection: Connection) {
-        let config = configurations.first { config in
-            let nonMatchingRule = config.rules.first { $0.verify(request) == false }
-            return nonMatchingRule == nil
+    private func handle(_ event: Connection.Event, for connection: Connection) {
+        switch event {
+            case .requestReceived(let request): handle(request, for: connection)
+            case .finished: connections.remove(connection)
         }
-        if let config = config {
-            connection.respond(to: request, with: config.response)
-            if config.removeAfterResponding, let index = configurations.firstIndex(of: config) {
-                configurations.remove(at: index)
-            }
-        }
-        connections.remove(connection)
+    }
+    
+    private func handle(_ request: Request, for connection: Connection) {
+        guard let config = configurations.matching(request) else { return }
+        connection.respond(to: request, with: config.response)
+        handle(used: config)
+    }
+    
+    private func handle(used config: Configuration) {
+        guard config.removeAfterResponding, let index = configurations.firstIndex(of: config) else { return }
+        configurations.remove(at: index)
     }
 	
 }
@@ -73,7 +79,7 @@ public extension Server {
 	enum Rule: Hashable {
 		
 		case method(matches: Request.Method)
-		case path(matches: String) // TODO: Handle wildcards
+        case path(matches: String) // TODO: Handle wildcards
 		case headers(contain: Request.Header)
 		case queryParameters(contain: Request.QueryParameter)
 		case body(matches: Data)
@@ -94,15 +100,26 @@ public extension Server {
 
 private extension Server {
 	
-	private enum State {
+	enum State {
 		case running(port: Int, interface: String)
 		case notRunning
 	}
 	
-	private struct Configuration: Hashable {
+	struct Configuration: Hashable {
 		let response: Response
 		let rules: [Rule]
 		let removeAfterResponding: Bool
 	}
 	
+}
+
+extension Array where Element == Server.Configuration {
+    
+    func matching(_ request: Request) -> Element? {
+        return first { config in
+            let nonMatchingRule = config.rules.first { $0.verify(request) == false }
+            return nonMatchingRule == nil
+        }
+    }
+    
 }

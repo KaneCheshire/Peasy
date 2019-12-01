@@ -12,24 +12,24 @@ final class InputLoop {
     private let socket: Socket
     private let handler: () -> Void
     private let queue = kqueue()
-    private lazy var dispatchQueue = DispatchQueue(label: "InputLoop: \(socket.tag)", qos: .background)
+    private let dispatchQueue = DispatchQueue(label: "codes.kane.Peasy.IncomingConnections", qos: .background)
     
     init(socket: Socket, _ handler: @escaping () -> Void) {
         self.socket = socket
         self.handler = handler
         setState(EV_ADD)
-        run()
+        tick()
     }
     
     deinit { setState(EV_DELETE) }
     
-    private func run() {
-        dispatchQueue.async { [weak self] in
-            guard let self = self else { return }
-            let events = self.events()
-            self.handle(events)
-            self.run()
-        }
+    private func tick() {
+        dispatchQueue.async { [weak self] in self?.tock() }
+    }
+    
+    private func tock() {
+        defer { tick() }
+        events().forEach { _ in handler() }
     }
     
     private func setState(_ state: Int32) {
@@ -43,18 +43,12 @@ final class InputLoop {
         var timeout = timespec.interval(0.1)
         var events = Array<Darwin.kevent>(repeating: kevent(), count: 1024)
         let success = events.withUnsafeMutableBufferPointer { kevent(queue, nil, 0, $0.baseAddress, 1024, &timeout) >= 0 }
-        guard success else { fatalError() }
-        let mapped = events.map { Int32($0.filter) }
-        return Set(mapped)
-    }
-    
-    private func handle(_ events: Set<Int32>) {
-        events.forEach { event in
-            switch event {
-            case EVFILT_READ: handler()
-            default: break
-            }
+        guard success else { fatalError(DarwinError().message) }
+        let mapped: [Int32] = events.compactMap { event in
+            guard event.ident == socket.tag && event.filter == EVFILT_READ else { return nil }
+            return Int32(event.filter)
         }
+        return Set(mapped)
     }
     
 }
