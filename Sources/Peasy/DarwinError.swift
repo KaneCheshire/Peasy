@@ -8,12 +8,12 @@
 import Foundation
 
 struct DarwinError: Error {
-    
-    let number: Int32
-    var message: String { return String(cString: strerror(errno)) }
-    
-    init(number: Int32 = errno) {
-        self.number = number
-    }
-    
+	
+	let number: Int32
+	var message: String { return String(cString: strerror(errno)) }
+	
+	init(number: Int32 = errno) {
+		self.number = number
+	}
+	
 }

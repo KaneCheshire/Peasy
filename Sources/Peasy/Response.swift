@@ -59,7 +59,7 @@ extension Response {
 													 Header(name: "Server", value: "Sprite"),
 													 Header(name: "Content-Type", value: "text/html; charset=UTF-8")] + headers
 		let string = "HTTP/1.1 \(status.httpRep)\r\n\(combinedHeaders.httpRep)\r\n\r\n"
-        return Data(string.utf8) + body
+		return Data(string.utf8) + body
 	}
 	
 }
@@ -80,9 +80,9 @@ extension Response.Status {
 	
 	var textRep: String {
 		switch self {
-		case .ok: return "OK"
-		case .notFound: return "Not Found"
-		case .internalServerError: return "Internal Server Error"
+			case .ok: return "OK"
+			case .notFound: return "Not Found"
+			case .internalServerError: return "Internal Server Error"
 		}
 	}
 	

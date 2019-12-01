@@ -36,47 +36,47 @@ struct RequestParser {
 		let header = data[data.startIndex ..< rangeOfHeaderEnd.lowerBound]
 		let body = data[rangeOfHeaderEnd.upperBound ..< data.endIndex]
 		switch state {
-		case .notStarted:
-			let length = contentLength(from: header)
-			if body.count == length {
-				let parsedHeader = parseHeader(header)
-				state = .finished(Request(header: parsedHeader, body: body))
-			} else {
-				let progress = Float(body.count) / Float(length)
-				state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
+			case .notStarted:
+				let length = contentLength(from: header)
+				if body.count == length {
+					let parsedHeader = parseHeader(header)
+					state = .finished(Request(header: parsedHeader, body: body))
+				} else {
+					let progress = Float(body.count) / Float(length)
+					state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
 			}
-		case .receivingHeader(let partialHeader):
-			let fullHeader = partialHeader + header
-			let length = contentLength(from: fullHeader)
-			if body.count == length {
-				let parsedHeader = parseHeader(header)
-				state = .finished(Request(header: parsedHeader, body: body))
-			} else {
-				let progress = Float(body.count) / Float(length)
-				state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
+			case .receivingHeader(let partialHeader):
+				let fullHeader = partialHeader + header
+				let length = contentLength(from: fullHeader)
+				if body.count == length {
+					let parsedHeader = parseHeader(header)
+					state = .finished(Request(header: parsedHeader, body: body))
+				} else {
+					let progress = Float(body.count) / Float(length)
+					state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
 			}
-		case .finished, .receivingBody: fatalError("Shouldn't be possible")
+			case .finished, .receivingBody: fatalError("Shouldn't be possible")
 			
 		}
 	}
 	
 	private mutating func handle(partialData: Data) {
 		switch state {
-		case .notStarted:
-			state = .receivingHeader(partialHeader: partialData)
-		case .receivingHeader(let partialHeader):
-			state = .receivingHeader(partialHeader: partialHeader + partialData)
-		case .receivingBody(let header, let partialBody, _):
-			let length = contentLength(from: header)
-			let body = partialBody + partialData
-			if body.count == length {
-				let parsedHeader = parseHeader(header)
-				state = .finished(Request(header: parsedHeader, body: body))
-			} else {
-				let progress = Float(body.count) / Float(length)
-				state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
+			case .notStarted:
+				state = .receivingHeader(partialHeader: partialData)
+			case .receivingHeader(let partialHeader):
+				state = .receivingHeader(partialHeader: partialHeader + partialData)
+			case .receivingBody(let header, let partialBody, _):
+				let length = contentLength(from: header)
+				let body = partialBody + partialData
+				if body.count == length {
+					let parsedHeader = parseHeader(header)
+					state = .finished(Request(header: parsedHeader, body: body))
+				} else {
+					let progress = Float(body.count) / Float(length)
+					state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
 			}
-		case .finished: fatalError()
+			case .finished: fatalError()
 		}
 	}
 	

@@ -12,65 +12,65 @@ public final class Server {
 	
 	private var state: State = .notRunning
 	private let socket = Socket()
-    private var loop: InputLoop?
+	private var loop: InputLoop?
 	private var connections: Set<Connection> = []
 	private var configurations: [Configuration] = []
 	
 	public init() {}
-    
-    private var pending: Socket?
-    
-    public func start(port: Int = 8881, interface: String = "::1") { // TODO: Turn interface into an enum for localhost etc
-        guard case .notRunning = state else { fatalError("Already started") }
-        print("Starting server...", port, interface)
-        socket.bind(port: port, interface: interface)
-        socket.listen()
-        loop = InputLoop(socket: socket) { [weak self] in
-            self?.handleIncomingConnection()
-        }
-        state = .running(port: port, interface: interface)
-    }
-    
+	
+	private var pending: Socket?
+	
+	public func start(port: Int = 8881, interface: String = "::1") { // TODO: Turn interface into an enum for localhost etc
+		guard case .notRunning = state else { fatalError("Already started") }
+		print("Starting server...", port, interface)
+		socket.bind(port: port, interface: interface)
+		socket.listen()
+		loop = InputLoop(socket: socket) { [weak self] in
+			self?.handleIncomingConnection()
+		}
+		state = .running(port: port, interface: interface)
+	}
+	
 	public func respond(with response: Response, when rules: Rule..., removeAfterResponding: Bool = false) {
 		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding)
 		configurations.append(config)
 	}
 	
-    public func stop() {
-        guard case .running = self.state else { fatalError("Not running") }
-        print("Stopping...")
-        loop = nil
-        connections.removeAll()
-        configurations.removeAll()
-        // TODO: Unbind port and stop listening? Test what happens if it's spun up again straight after
-        self.state = .notRunning
+	public func stop() {
+		guard case .running = self.state else { fatalError("Not running") }
+		print("Stopping...")
+		loop = nil
+		connections.removeAll()
+		configurations.removeAll()
+		// TODO: Unbind port and stop listening? Test what happens if it's spun up again straight after
+		self.state = .notRunning
 	}
-    
-    private func handleIncomingConnection() {
-        let clientSocket = socket.accept()
-        let connection = Connection(client: clientSocket) { [weak self] event, connection in
-            self?.handle(event, for: connection)
-        }
-        connections.insert(connection)
-    }
-    
-    private func handle(_ event: Connection.Event, for connection: Connection) {
-        switch event {
-            case .requestReceived(let request): handle(request, for: connection)
-            case .finished: connections.remove(connection)
-        }
-    }
-    
-    private func handle(_ request: Request, for connection: Connection) {
-        guard let config = configurations.matching(request) else { return }
-        connection.respond(to: request, with: config.response)
-        handle(used: config)
-    }
-    
-    private func handle(used config: Configuration) {
-        guard config.removeAfterResponding, let index = configurations.firstIndex(of: config) else { return }
-        configurations.remove(at: index)
-    }
+	
+	private func handleIncomingConnection() {
+		let clientSocket = socket.accept()
+		let connection = Connection(client: clientSocket) { [weak self] event, connection in
+			self?.handle(event, for: connection)
+		}
+		connections.insert(connection)
+	}
+	
+	private func handle(_ event: Connection.Event, for connection: Connection) {
+		switch event {
+			case .requestReceived(let request): handle(request, for: connection)
+			case .finished: connections.remove(connection)
+		}
+	}
+	
+	private func handle(_ request: Request, for connection: Connection) {
+		guard let config = configurations.matching(request) else { return }
+		connection.respond(to: request, with: config.response)
+		handle(used: config)
+	}
+	
+	private func handle(used config: Configuration) {
+		guard config.removeAfterResponding, let index = configurations.firstIndex(of: config) else { return }
+		configurations.remove(at: index)
+	}
 	
 }
 
@@ -79,18 +79,18 @@ public extension Server {
 	enum Rule: Hashable {
 		
 		case method(matches: Request.Method)
-        case path(matches: String) // TODO: Handle wildcards
+		case path(matches: String) // TODO: Handle wildcards
 		case headers(contain: Request.Header)
 		case queryParameters(contain: Request.QueryParameter)
 		case body(matches: Data)
 		
 		func verify(_ request: Request) -> Bool {
 			switch self {
-			case .method(matches: let method): return request.method == method
-			case .path(matches: let path): return request.path == path
-			case .headers(contain: let header): return request.headers.contains(header)
-			case .queryParameters(contain: let queryParam): return request.queryParameters.contains(queryParam)
-			case .body(matches: let body): return request.body == body
+				case .method(matches: let method): return request.method == method
+				case .path(matches: let path): return request.path == path
+				case .headers(contain: let header): return request.headers.contains(header)
+				case .queryParameters(contain: let queryParam): return request.queryParameters.contains(queryParam)
+				case .body(matches: let body): return request.body == body
 			}
 		}
 		
@@ -114,12 +114,12 @@ private extension Server {
 }
 
 extension Array where Element == Server.Configuration {
-    
-    func matching(_ request: Request) -> Element? {
-        return first { config in
-            let nonMatchingRule = config.rules.first { $0.verify(request) == false }
-            return nonMatchingRule == nil
-        }
-    }
-    
+	
+	func matching(_ request: Request) -> Element? {
+		return first { config in
+			let nonMatchingRule = config.rules.first { $0.verify(request) == false }
+			return nonMatchingRule == nil
+		}
+	}
+	
 }
