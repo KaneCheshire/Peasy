@@ -18,8 +18,6 @@ public final class Server {
 	
 	public init() {}
 	
-	private var pending: Socket?
-	
 	public func start(port: Int = 8881, interface: String = "::1") { // TODO: Turn interface into an enum for localhost etc
 		guard case .notRunning = state else { fatalError("Already started") }
 		print("Starting server...", port, interface)
