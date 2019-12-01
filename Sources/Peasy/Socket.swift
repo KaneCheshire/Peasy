@@ -17,27 +17,28 @@ final class Socket {
 		tag.setNotBlocking()
 	}
 	
-	deinit {
+	func close() {
 		print("Closing socket", tag)
 		shutdown(tag, SHUT_WR)
-		close(tag)
+		Darwin.close(tag)
 	}
 	
-	func bind(port: Int, interface: String) {
+	func bind(port: Int) {
 		var reuse: Int32 = 1
 		guard setsockopt(tag, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) >= 0 else { fatalError(DarwinError().message) }
 		var address = sockaddr_in6()
 		address.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.stride)
 		address.sin6_family = sa_family_t(AF_INET6)
 		address.sin6_port = UInt16(port).bigEndian
-		address.sin6_addr = .from(interface)
+		address.sin6_addr = .localhost
 		let size = socklen_t(MemoryLayout<sockaddr_in6>.size)
 		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { Darwin.bind(tag, $0, size) >= 0 } }
 		guard success else { fatalError(DarwinError().message) }
-		print("Bound to port", port, interface)
+		print("Bound to port", port)
+		listen()
 	}
 	
-	func listen() {
+	private func listen() {
 		let success = Darwin.listen(tag, Int32(SOMAXCONN)) >= 0
 		guard success else { fatalError(DarwinError().message) }
 		print("Listening on socket", tag)
@@ -72,9 +73,9 @@ final class Socket {
 
 extension in6_addr {
 	
-	static func from(_ interface: String) -> in6_addr {
+	static var localhost: in6_addr {
 		var result: in6_addr = in6_addr()
-		_ = interface.withCString { inet_pton(AF_INET6, $0, &result) } // TODO: Don't really understand this yet...
+		_ = "::1".withCString { inet_pton(AF_INET6, $0, &result) }
 		return result
 	}
 	

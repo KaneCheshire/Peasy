@@ -13,6 +13,7 @@ final class InputLoop {
 	private let handler: () -> Void
 	private let queue = kqueue()
 	private let dispatchQueue = DispatchQueue(label: "codes.kane.Peasy.IncomingConnections", qos: .background)
+	private var workItem = DispatchWorkItem {}
 	
 	init(socket: Socket, _ handler: @escaping () -> Void) {
 		self.socket = socket
@@ -21,10 +22,14 @@ final class InputLoop {
 		tick()
 	}
 	
-	deinit { setState(EV_DELETE) }
+	func close() {
+		setState(EV_DELETE)
+		workItem.cancel()
+	}
 	
 	private func tick() {
-		dispatchQueue.async { [weak self] in self?.tock() }
+		workItem = DispatchWorkItem { [weak self] in self?.tock() }
+		dispatchQueue.async(execute: workItem)
 	}
 	
 	private func tock() {

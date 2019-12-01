@@ -11,22 +11,21 @@ import Foundation
 public final class Server {
 	
 	private var state: State = .notRunning
-	private let socket = Socket()
-	private var loop: InputLoop?
 	private var connections: Set<Connection> = []
 	private var configurations: [Configuration] = []
 	
 	public init() {}
 	
-	public func start(port: Int = 8881, interface: String = "::1") { // TODO: Turn interface into an enum for localhost etc
-		guard case .notRunning = state else { fatalError("Already started") }
-		print("Starting server...", port, interface)
-		socket.bind(port: port, interface: interface)
-		socket.listen()
-		loop = InputLoop(socket: socket) { [weak self] in
-			self?.handleIncomingConnection()
+	public func start(port: Int = 8881) {
+		switch state {
+			case .notRunning:
+				let socket = Socket()
+				socket.bind(port: port)
+				let loop = InputLoop(socket: socket) { [weak self] in self?.handleIncomingConnection() }
+				state = .running(socket, loop)
+				print("Started server on port", port)
+			case .running: fatalError("Cannot start server because it's already started.")
 		}
-		state = .running(port: port, interface: interface)
 	}
 	
 	public func respond(with response: Response, when rules: Rule..., removeAfterResponding: Bool = false) {
@@ -35,21 +34,28 @@ public final class Server {
 	}
 	
 	public func stop() {
-		guard case .running = self.state else { fatalError("Not running") }
-		print("Stopping...")
-		loop = nil
-		connections.removeAll()
-		configurations.removeAll()
-		// TODO: Unbind port and stop listening? Test what happens if it's spun up again straight after
-		self.state = .notRunning
+		switch state {
+			case .running(let socket, let loop):
+				print("Stopping...")
+				loop.close()
+				socket.close()
+				connections.removeAll()
+				configurations.removeAll()
+				state = .notRunning
+			case .notRunning: fatalError("Cannot stop server because it's not running.")
+		}
 	}
 	
 	private func handleIncomingConnection() {
-		let clientSocket = socket.accept()
-		let connection = Connection(client: clientSocket) { [weak self] event, connection in
-			self?.handle(event, for: connection)
+		switch state {
+			case .running(let socket, _):
+				let clientSocket = socket.accept()
+				let connection = Connection(client: clientSocket) { [weak self] event, connection in
+					self?.handle(event, for: connection)
+				}
+				connections.insert(connection)
+			case .notRunning: break
 		}
-		connections.insert(connection)
 	}
 	
 	private func handle(_ event: Connection.Event, for connection: Connection) {
@@ -99,7 +105,7 @@ public extension Server {
 private extension Server {
 	
 	enum State {
-		case running(port: Int, interface: String)
+		case running(Socket, InputLoop)
 		case notRunning
 	}
 	
@@ -111,7 +117,7 @@ private extension Server {
 	
 }
 
-extension Array where Element == Server.Configuration {
+private extension Array where Element == Server.Configuration {
 	
 	func matching(_ request: Request) -> Element? {
 		return first { config in
