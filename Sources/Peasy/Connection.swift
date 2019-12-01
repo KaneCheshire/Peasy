@@ -9,48 +9,53 @@
 import Foundation
 import UIKit
 
-class Connection {
-	
-	typealias EventHandler = (Event, Connection) -> Void
+final class Connection {
 	
 	enum Event {
 		case requestReceived(Request)
-		case closed
+		case finished
 	}
+	
+	typealias EventHandler = (Event, Connection) -> Void
 	
 	private let uuid = UUID()
 	private let handler: EventHandler
-	private var transport: Transport! // TODO: Not ideal
+	private let client: Socket
 	private var parser = RequestParser()
+	private var inputLoop: InputLoop?
 	
-	init(client: Socket, loop: Loop, handler: @escaping EventHandler) {
+	init(client: Socket, handler: @escaping EventHandler) {
+		self.client = client
 		self.handler = handler
-		self.transport = Transport(socket: client, loop: loop) { [weak self] event in
-			switch event {
-			case .dataReceived(let data):
-				self?.handle(data)
-			case .closed:
-				guard let self = self else { return }
-				handler(.closed, self)
-			}
+		inputLoop = InputLoop(socket: client) { [weak self] in // TODO: Not convinced this loop is even needed now
+			self?.handleDataAvailable()
 		}
 	}
 	
-	func respond(to request: Request, with data: Data, completion: @escaping () -> Void) {
-		transport.write(data)
-		close()
-		completion()
+	func respond(to request: Request, with response: Response) {
+		switch client.write(response.httpRep) {
+			case .success: break
+			case .failure(let error): fatalError(error.message)
+		}
 	}
 	
-	func close() {
-		transport.close()
+	private func handleDataAvailable() {
+		switch client.read() {
+			case .success(let data): handle(data)
+			case .failure(let error): fatalError(error.message)
+		}
 	}
 	
 	private func handle(_ data: Data) {
-		switch parser.parse(data) {
-		case .finished(let request):
-			handler(.requestReceived(request), self)
-		case .notStarted, .receivingHeader, .receivingBody: break
+		if data.isEmpty {
+			handler(.finished, self)
+		} else {
+			switch parser.parse(data) {
+				case .finished(let request):
+					handler(.requestReceived(request), self)
+					handler(.finished, self)
+				case .notStarted, .receivingHeader, .receivingBody: break
+			}
 		}
 	}
 	

@@ -12,24 +12,21 @@ public final class Server {
 	
 	private var state: State = .notRunning
 	private let socket = Socket()
-	private let loop = Loop()
+	private var loop: InputLoop?
 	private var connections: Set<Connection> = []
 	private var configurations: [Configuration] = []
 	
 	public init() {}
 	
-	public func start(port: Int = 8881, interface: String = "::1") {
-		DispatchQueue.global(qos: .background).async {
-			guard case .notRunning = self.state else { fatalError("Already started") }
-			print("Starting server...", port, interface)
-			self.socket.bind(port: port, interface: interface)
-			self.socket.listen()
-			self.loop.setReader(self.socket.tag) { [weak self] in
-				self?.handleIncomingConnection(port: port, interface: interface)
-			}
-			self.loop.run()
-			self.state = .running(port: port, interface: interface)
+	public func start(port: Int = 8881, interface: String = "::1") { // TODO: Turn interface into an enum for localhost etc
+		guard case .notRunning = state else { fatalError("Already started") }
+		print("Starting server...", port, interface)
+		socket.bind(port: port, interface: interface)
+		socket.listen()
+		loop = InputLoop(socket: socket) { [weak self] in
+			self?.handleIncomingConnection()
 		}
+		state = .running(port: port, interface: interface)
 	}
 	
 	public func respond(with response: Response, when rules: Rule..., removeAfterResponding: Bool = false) {
@@ -38,14 +35,39 @@ public final class Server {
 	}
 	
 	public func stop() {
-		DispatchQueue.global(qos: .background).async {
-			guard case .running = self.state else { fatalError("Not running") }
-			print("Stopping...")
-			self.loop.removeReader(self.socket.tag)
-			self.loop.stop()
-			// TODO: Unbind port and stop listening?
-			self.state = .notRunning
+		guard case .running = self.state else { fatalError("Not running") }
+		print("Stopping...")
+		loop = nil
+		connections.removeAll()
+		configurations.removeAll()
+		// TODO: Unbind port and stop listening? Test what happens if it's spun up again straight after
+		self.state = .notRunning
+	}
+	
+	private func handleIncomingConnection() {
+		let clientSocket = socket.accept()
+		let connection = Connection(client: clientSocket) { [weak self] event, connection in
+			self?.handle(event, for: connection)
 		}
+		connections.insert(connection)
+	}
+	
+	private func handle(_ event: Connection.Event, for connection: Connection) {
+		switch event {
+			case .requestReceived(let request): handle(request, for: connection)
+			case .finished: connections.remove(connection)
+		}
+	}
+	
+	private func handle(_ request: Request, for connection: Connection) {
+		guard let config = configurations.matching(request) else { return }
+		connection.respond(to: request, with: config.response)
+		handle(used: config)
+	}
+	
+	private func handle(used config: Configuration) {
+		guard config.removeAfterResponding, let index = configurations.firstIndex(of: config) else { return }
+		configurations.remove(at: index)
 	}
 	
 }
@@ -62,11 +84,11 @@ public extension Server {
 		
 		func verify(_ request: Request) -> Bool {
 			switch self {
-			case .method(matches: let method): return request.method == method
-			case .path(matches: let path): return request.path == path
-			case .headers(contain: let header): return request.headers.contains(header)
-			case .queryParameters(contain: let queryParam): return request.queryParameters.contains(queryParam)
-			case .body(matches: let body): return request.body == body
+				case .method(matches: let method): return request.method == method
+				case .path(matches: let path): return request.path == path
+				case .headers(contain: let header): return request.headers.contains(header)
+				case .queryParameters(contain: let queryParam): return request.queryParameters.contains(queryParam)
+				case .body(matches: let body): return request.body == body
 			}
 		}
 		
@@ -76,43 +98,25 @@ public extension Server {
 
 private extension Server {
 	
-	private enum State {
+	enum State {
 		case running(port: Int, interface: String)
 		case notRunning
 	}
 	
-	private struct Configuration: Hashable {
+	struct Configuration: Hashable {
 		let response: Response
 		let rules: [Rule]
 		let removeAfterResponding: Bool
 	}
 	
-	private func handleIncomingConnection(port: Int, interface: String) {
-		let clientSocket = socket.accept()
-		let connection = Connection(client: clientSocket, loop: loop) { [weak self] event, connection in
-			self?.handle(event, connection: connection)
-		}
-		connections.insert(connection)
-	}
+}
+
+extension Array where Element == Server.Configuration {
 	
-	private func handle(_ event: Connection.Event, connection: Connection) {
-		switch event {
-		case .requestReceived(let request):
-			let config = configurations.first { config in
-				let nonMatchingRule = config.rules.first { $0.verify(request) == false }
-				return nonMatchingRule == nil
-			}
-			if let response = config?.response {
-				connection.respond(to: request, with: Data(response.httpRep.utf8)) { [weak self] in
-					if let config = config, config.removeAfterResponding, let index = self?.configurations.firstIndex(of: config) {
-						self?.configurations.remove(at: index)
-					}
-				}
-			} else {
-				connection.close()
-			}
-		case .closed:
-			connections.remove(connection)
+	func matching(_ request: Request) -> Element? {
+		return first { config in
+			let nonMatchingRule = config.rules.first { $0.verify(request) == false }
+			return nonMatchingRule == nil
 		}
 	}
 	
