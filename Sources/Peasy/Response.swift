@@ -33,12 +33,16 @@ public struct Response: Hashable {
 	
 	let status: Status
 	let headers: [Header]
-	let body: Data // TODO: Support sending image data
+	let body: Data
 	
 	public init(status: Status, headers: [Header] = [], body: Data = Data()) {
 		self.status = status
 		self.headers = headers
 		self.body = body
+	}
+	
+	public init(status: Status, headers: [Header] = [], body: String) {
+		self = Response(status: status, headers: headers, body: Data(body.utf8))
 	}
 	
 }
