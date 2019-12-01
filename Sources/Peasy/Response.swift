@@ -45,6 +45,10 @@ public struct Response: Hashable {
 		self = Response(status: status, headers: headers, body: Data(body.utf8))
 	}
 	
+	public init<Body: Encodable>(status: Status, headers: [Header] = [], body: Body, encoder: JSONEncoder = .prettyPrinted) {
+		self = Response(status: status, headers: headers, body: try! encoder.encode(body))
+	}
+	
 }
 
 public extension Response.Header {
@@ -96,6 +100,16 @@ extension Array where Element == Response.Header {
 	
 	var httpRep: String {
 		return map { $0.httpRep }.joined(separator: "\r\n")
+	}
+	
+}
+
+public extension JSONEncoder {
+	
+	static var prettyPrinted: JSONEncoder {
+		let encoder = JSONEncoder()
+		encoder.outputFormatting = .prettyPrinted
+		return encoder
 	}
 	
 }
