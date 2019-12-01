@@ -1,5 +1,5 @@
 //
-//  InputLoop.swift
+//  EventListener.swift
 //  
 //
 //  Created by Kane Cheshire on 30/11/2019.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class InputLoop {
+final class EventListener {
 	
 	private let socket: Socket
 	private let handler: () -> Void

@@ -1,6 +1,6 @@
 //
 //  Server.swift
-//  IntegratedMockTestUITests
+//  Peasy
 //
 //  Created by Kane Cheshire on 27/11/2019.
 //  Copyright © 2019 kane.codes. All rights reserved.
@@ -21,8 +21,8 @@ public final class Server {
 			case .notRunning:
 				let socket = Socket()
 				socket.bind(port: port)
-				let loop = InputLoop(socket: socket) { [weak self] in self?.handleIncomingConnection() }
-				state = .running(socket, loop)
+				let eventListener = EventListener(socket: socket) { [weak self] in self?.handleIncomingConnection() }
+				state = .running(socket, eventListener)
 				print("Started server on port", port)
 			case .running: fatalError("Cannot start server because it's already started.")
 		}
@@ -35,9 +35,9 @@ public final class Server {
 	
 	public func stop() {
 		switch state {
-			case .running(let socket, let loop):
+			case .running(let socket, let eventListener):
 				print("Stopping...")
-				loop.close()
+				eventListener.close()
 				socket.close()
 				connections.removeAll()
 				configurations.removeAll()
@@ -48,14 +48,17 @@ public final class Server {
 	
 	private func handleIncomingConnection() {
 		switch state {
-			case .running(let socket, _):
-				let clientSocket = socket.accept()
-				let connection = Connection(client: clientSocket) { [weak self] event, connection in
-					self?.handle(event, for: connection)
-				}
-				connections.insert(connection)
+			case .running(let socket, _): acceptClientSocket(from: socket)
 			case .notRunning: break
 		}
+	}
+	
+	private func acceptClientSocket(from socket: Socket) {
+		let clientSocket = socket.accept()
+		let connection = Connection(client: clientSocket) { [weak self] event, connection in
+			self?.handle(event, for: connection)
+		}
+		connections.insert(connection)
 	}
 	
 	private func handle(_ event: Connection.Event, for connection: Connection) {
@@ -105,7 +108,7 @@ public extension Server {
 private extension Server {
 	
 	enum State {
-		case running(Socket, InputLoop)
+		case running(Socket, EventListener)
 		case notRunning
 	}
 	

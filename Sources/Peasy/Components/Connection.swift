@@ -1,6 +1,6 @@
 //
 //  Connection.swift
-//  IntegratedMockTestUITests
+//  Peasy
 //
 //  Created by Kane Cheshire on 28/11/2019.
 //  Copyright © 2019 kane.codes. All rights reserved.
@@ -22,18 +22,18 @@ final class Connection {
 	private let handler: EventHandler
 	private let client: Socket
 	private var parser = RequestParser()
-	private var inputLoop: InputLoop?
+	private var loop: EventListener?
 	
 	init(client: Socket, handler: @escaping EventHandler) {
 		self.client = client
 		self.handler = handler
-		inputLoop = InputLoop(socket: client) { [weak self] in // TODO: Not convinced this loop is even needed now
+		loop = EventListener(socket: client) { [weak self] in // TODO: Not convinced this loop is even needed now
 			self?.handleDataAvailable()
 		}
 	}
 	
 	deinit {
-		inputLoop?.close()
+		loop?.close()
 		client.close()
 	}
 	
@@ -55,12 +55,16 @@ final class Connection {
 		if data.isEmpty {
 			handler(.finished, self)
 		} else {
-			switch parser.parse(data) {
-				case .finished(let request):
-					handler(.requestReceived(request), self)
-					handler(.finished, self)
-				case .notStarted, .receivingHeader, .receivingBody: break
-			}
+			parse(data)
+		}
+	}
+	
+	private func parse(_ data: Data) {
+		switch parser.parse(data) {
+			case .finished(let request):
+				handler(.requestReceived(request), self)
+				handler(.finished, self)
+			case .notStarted, .receivingHeader, .receivingBody: break
 		}
 	}
 	

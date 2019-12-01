@@ -23,9 +23,9 @@ class ViewController: UIViewController {
 		let response = Response(status: .ok, headers: [contentType], body: img)
 		server.respond(with: response, when: .path(matches: "/another-test"))
 		
-		server.stop()
+		
+		let server = Server()
 		server.start()
-		server.respond(with: response, when: .path(matches: "/another-test"))
 	}
 	
 }
