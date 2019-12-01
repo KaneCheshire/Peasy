@@ -14,7 +14,6 @@ final class Socket {
 	
 	init(tag: Int32 = socket(AF_INET6, SOCK_STREAM, 0)) {
 		self.tag = tag
-		tag.setNotBlocking()
 	}
 	
 	func close() {
