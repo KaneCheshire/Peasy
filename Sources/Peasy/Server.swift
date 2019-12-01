@@ -47,8 +47,9 @@ public final class Server {
 	///   - response: The response to respond to the matching request with.
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
-	public func respond(with response: Response, when rules: Rule..., removeAfterResponding: Bool = false) {
-		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding)
+	///   - handler: An optional handler to be called when the server matches a request and uses the response. You could use this, for example, to store an array of analytics received to verify the right analytics have been tracked by the app,
+	public func respond(with response: Response, when rules: Rule..., removeAfterResponding: Bool = false, handler: ((Request) -> Void)? = nil) {
+		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding, handler: handler)
 		configurations.append(config)
 	}
 	
@@ -101,6 +102,7 @@ public final class Server {
 	private func handle(_ request: Request, for connection: Connection) {
 		guard let config = configurations.matching(request) else { return }
 		connection.respond(to: request, with: config.response)
+		config.handler?(request)
 		handle(used: config)
 	}
 	
@@ -139,6 +141,7 @@ private extension Server {
 		let response: Response
 		let rules: [Rule]
 		let removeAfterResponding: Bool
+		let handler: ((Request) -> Void)?
 	}
 	
 }
