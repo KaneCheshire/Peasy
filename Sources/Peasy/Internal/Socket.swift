@@ -53,8 +53,9 @@ final class Socket {
 	}
 	
 	func read() -> Result<Data, DarwinError> {
-		var data = Data(count: 1024)
-		let bytesRead = data.withUnsafeMutableBytes { recv(tag, $0, data.count, 0) }
+		let maxBytes = 1024
+		var data = Data(count: maxBytes)
+		let bytesRead = data.withUnsafeMutableBytes { recv(tag, $0, maxBytes, 0) }
 		guard bytesRead >= 0 else { return .failure(.init()) }
 		return .success(data[..<bytesRead])
 	}

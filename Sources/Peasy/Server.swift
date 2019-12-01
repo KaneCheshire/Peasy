@@ -8,14 +8,29 @@
 
 import Foundation
 
+/// This is the Peasy server.
+/// Create a server and then call  `start`.
+/// It's that easy. Easy peasy!
 public final class Server {
+	
+	// MARK: - Properties -
+	// MARK: Private
 	
 	private var state: State = .notRunning
 	private var connections: Set<Connection> = []
 	private var configurations: [Configuration] = []
 	
+	// MARK: - Init -
+	// MARK: Public
+	
 	public init() {}
 	
+	// MARK: - Functions -
+	// MARK: Public
+	
+	/// Starts the server on the specified port (or the default port if no port is specified)
+	///
+	/// It is an error to attempt to start more than one server on the same port without calling `stop`  on the previous servers first.
 	public func start(port: Int = 8880) {
 		switch state {
 			case .notRunning: createSocket(bindingTo: port)
@@ -23,11 +38,21 @@ public final class Server {
 		}
 	}
 	
+	/// Configures the server to respond to requests that match the provided rules.
+	///
+	/// You must configure the server to know what to respond to requests before requests are made, otherwise
+	/// the connection will be closed with no response.
+	///
+	/// - Parameters:
+	///   - response: The response to respond to the matching request with.
+	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
+	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
 	public func respond(with response: Response, when rules: Rule..., removeAfterResponding: Bool = false) {
 		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding)
 		configurations.append(config)
 	}
 	
+	/// Stops the server and frees up the port used when calling `start`.
 	public func stop() {
 		switch state {
 			case .running(let socket, let eventListener):
@@ -40,6 +65,8 @@ public final class Server {
 			case .notRunning: fatalError("Cannot stop server because it's not running.")
 		}
 	}
+	
+	// MARK: Private
 	
 	private func createSocket(bindingTo port: Int) {
 		let socket = Socket()
@@ -86,6 +113,7 @@ public final class Server {
 
 public extension Server {
 	
+	/// Represents a rule to match requests with.
 	enum Rule {
 		
 		case method(matches: Request.Method)
@@ -94,17 +122,6 @@ public extension Server {
 		case queryParameters(contain: Request.QueryParameter)
 		case body(matches: Data)
 		case custom((Request) -> Bool)
-		
-		func verify(_ request: Request) -> Bool {
-			switch self {
-				case .method(matches: let method): return request.method == method
-				case .path(matches: let path): return request.path == path
-				case .headers(contain: let header): return request.headers.contains(header)
-				case .queryParameters(contain: let queryParam): return request.queryParameters.contains(queryParam)
-				case .body(matches: let body): return request.body == body
-				case .custom(let handler): return handler(request)
-			}
-		}
 		
 	}
 	
@@ -140,6 +157,21 @@ private extension Array where Element == Server.Configuration {
 		return first { config in
 			let nonMatchingRule = config.rules.first { $0.verify(request) == false }
 			return nonMatchingRule == nil
+		}
+	}
+	
+}
+
+private extension Server.Rule {
+	
+	func verify(_ request: Request) -> Bool {
+		switch self {
+			case .method(matches: let method): return request.method == method
+			case .path(matches: let path): return request.path == path
+			case .headers(contain: let header): return request.headers.contains(header)
+			case .queryParameters(contain: let queryParam): return request.queryParameters.contains(queryParam)
+			case .body(matches: let body): return request.body == body
+			case .custom(let handler): return handler(request)
 		}
 	}
 	
