@@ -1,5 +1,5 @@
 //
-//  RequestTemp.swift
+//  Request.swift
 //  Peasy
 //
 //  Created by Kane Cheshire on 28/11/2019.
@@ -14,7 +14,8 @@ public struct Request: Hashable {
 		case get = "GET"
 		case post = "POST"
 		case put = "PUT"
-		case delete = "DELETE" // TODO
+		case delete = "DELETE"
+		case head = "HEAD"
 	}
 	
 	public struct QueryParameter: Hashable {

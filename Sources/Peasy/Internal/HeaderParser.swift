@@ -88,7 +88,7 @@ struct RequestParser {
 		let methodRaw = String(statusComponents[0])
 		let method = Request.Method(rawValue: methodRaw)!
 		let pathWithQuery = String(statusComponents[1])
-		let headers = parseHeaders(lines.map { String($0) }) // TODO: Might not need to map
+		let headers = parseHeaders(lines.map { String($0) })
 		let path = parsePath(pathWithQuery)
 		let queryParams = parseQueryParams(pathWithQuery)
 		return (method, path, headers, queryParams)

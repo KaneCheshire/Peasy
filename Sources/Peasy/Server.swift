@@ -86,13 +86,14 @@ public final class Server {
 
 public extension Server {
 	
-	enum Rule: Hashable {
+	enum Rule {
 		
 		case method(matches: Request.Method)
 		case path(matches: String) // TODO: Handle wildcards
 		case headers(contain: Request.Header)
 		case queryParameters(contain: Request.QueryParameter)
 		case body(matches: Data)
+		case custom((Request) -> Bool)
 		
 		func verify(_ request: Request) -> Bool {
 			switch self {
@@ -101,6 +102,7 @@ public extension Server {
 				case .headers(contain: let header): return request.headers.contains(header)
 				case .queryParameters(contain: let queryParam): return request.queryParameters.contains(queryParam)
 				case .body(matches: let body): return request.body == body
+				case .custom(let handler): return handler(request)
 			}
 		}
 		
@@ -115,10 +117,19 @@ private extension Server {
 		case notRunning
 	}
 	
-	struct Configuration: Hashable {
+	struct Configuration {
+		let uuid = UUID()
 		let response: Response
 		let rules: [Rule]
 		let removeAfterResponding: Bool
+	}
+	
+}
+
+extension Server.Configuration: Equatable {
+	
+	static func == (lhs: Server.Configuration, rhs: Server.Configuration) -> Bool {
+		return lhs.uuid == rhs.uuid
 	}
 	
 }
