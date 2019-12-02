@@ -8,8 +8,6 @@
 
 import Foundation
 
-// TOOD: Make sure it's easy to test timeouts and no connection
-
 struct RequestParser {
 	
 	enum State {

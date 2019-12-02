@@ -22,18 +22,19 @@ final class Connection {
 	private let handler: EventHandler
 	private let client: Socket
 	private var parser = RequestParser()
-	private var loop: EventListener?
+	private let eventListener: EventListener
 	
-	init(client: Socket, handler: @escaping EventHandler) {
+	init(client: Socket, eventListener: EventListener, handler: @escaping EventHandler) {
 		self.client = client
 		self.handler = handler
-		loop = EventListener(socket: client) { [weak self] in // TODO: Not convinced this loop is even needed now
+		self.eventListener = eventListener
+		eventListener.register(client) { [weak self] in
 			self?.handleDataAvailable()
 		}
 	}
 	
 	deinit {
-		loop?.close()
+		eventListener.unregister(client)
 		client.close()
 	}
 	

@@ -9,51 +9,58 @@ import Foundation
 
 final class EventListener {
 	
-	private let socket: Socket
-	private let handler: () -> Void
 	private let queue = kqueue()
-	private let dispatchQueue = DispatchQueue(label: "codes.kane.Peasy.IncomingConnections", qos: .background)
-	private var workItem = DispatchWorkItem {}
+	private var handlers: [Int32: () -> Void] = [:]
+	private let dispatchQueue = DispatchQueue(label: "codes.kane.Peasy.EventLoop", qos: .background, target: nil)
+	private var item = DispatchWorkItem {}
 	
-	init(socket: Socket, _ handler: @escaping () -> Void) {
-		self.socket = socket
-		self.handler = handler
-		setState(EV_ADD)
-		tick()
+	func stop() {
+		item.cancel()
+		handlers.forEach { tag in
+			setState(EV_DELETE, socket: tag.key)
+		}
 	}
 	
-	func close() {
-		setState(EV_DELETE)
-		workItem.cancel()
+	func start() {
+		item = DispatchWorkItem { [weak self] in
+			self?.performCheck()
+		}
+		dispatchQueue.async(execute: item)
 	}
 	
-	private func tick() {
-		workItem = DispatchWorkItem { [weak self] in self?.tock() }
-		dispatchQueue.async(execute: workItem)
+	func register(_ socket: Socket, _ handler: @escaping () -> Void) {
+		handlers[socket.tag] = handler
+		setState(EV_ADD, socket: socket.tag)
 	}
 	
-	private func tock() {
-		defer { tick() }
-		events().forEach { _ in handler() }
+	func unregister(_ socket: Socket) {
+		setState(EV_DELETE, socket: socket.tag)
+		handlers[socket.tag] = nil
 	}
 	
-	private func setState(_ state: Int32) {
-		var events = [Darwin.kevent(ident: UInt(socket.tag), filter: Int16(EVFILT_READ), flags: UInt16(state), fflags: 0, data: 0, udata: nil)]
+	private func performCheck() {
+		events().forEach { e in
+			handlers[e]!()
+			start()
+		}
+	}
+	
+	private func setState(_ state: Int32, socket: Int32) {
+		var events = [Darwin.kevent(ident: UInt(socket), filter: Int16(EVFILT_READ), flags: UInt16(state), fflags: 0, data: 0, udata: nil)]
 		let eventCount = events.count
 		let success = events.withUnsafeMutableBufferPointer { kevent(queue, $0.baseAddress, Int32(eventCount), nil, 0, nil) >= 0 }
 		guard success else { fatalError(DarwinError().message) }
 	}
 	
-	private func events() -> Set<Int32> {
+	private func events() -> [Int32] {
 		var timeout = timespec.interval(0.1)
 		var events = Array<Darwin.kevent>(repeating: kevent(), count: 1024)
 		let success = events.withUnsafeMutableBufferPointer { kevent(queue, nil, 0, $0.baseAddress, 1024, &timeout) >= 0 }
 		guard success else { fatalError(DarwinError().message) }
-		let mapped: [Int32] = events.compactMap { event in
-			guard event.ident == socket.tag && event.filter == EVFILT_READ else { return nil }
-			return Int32(event.filter)
+		return events.compactMap { event in
+			guard event.filter == EVFILT_READ else { return nil }
+			return Int32(event.ident)
 		}
-		return Set(mapped)
 	}
 	
 }
