@@ -35,7 +35,10 @@ public extension Response {
 	enum Status: Hashable {
 		case ok
 		case notFound
+		case badRequest
+		case unauthorized
 		case internalServerError
+		case serviceUnavailable
 		case code(Int, message: String)
 	}
 	
@@ -78,7 +81,7 @@ extension Response {
 	
 }
 
-extension Response.Header {
+private extension Response.Header {
 	
 	var httpRep: String {
 		return "\(name): \(value)"
@@ -86,13 +89,16 @@ extension Response.Header {
 	
 }
 
-extension Response.Status {
+private extension Response.Status {
 	
 	var code: Int {
 		switch self {
 			case .ok: return 200
-			case .notFound: return 401
+			case .badRequest: return 400
+			case .unauthorized: return 401
+			case .notFound: return 404
 			case .internalServerError: return 500
+			case .serviceUnavailable: return 503
 			case .code(let code, _): return code
 		}
 	}
@@ -100,8 +106,11 @@ extension Response.Status {
 	var message: String {
 		switch self {
 			case .ok: return "OK"
+			case .badRequest: return "Bad Request"
+			case .unauthorized: return "Unauthorized"
 			case .notFound: return "Not Found"
 			case .internalServerError: return "Internal Server Error"
+			case .serviceUnavailable: return "Service Unavailable"
 			case .code(_, let message): return message
 		}
 	}
@@ -112,7 +121,7 @@ extension Response.Status {
 	
 }
 
-extension Array where Element == Response.Header {
+private extension Array where Element == Response.Header {
 	
 	var httpRep: String {
 		return map { $0.httpRep }.joined(separator: "\r\n")
