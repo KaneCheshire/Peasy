@@ -119,7 +119,7 @@ public extension Server {
 	enum Rule {
 		
 		case method(matches: Request.Method)
-		case path(matches: String) // TODO: Handle wildcards
+		case path(matches: String)
 		case headers(contain: Request.Header)
 		case queryParameters(contain: Request.QueryParameter)
 		case body(matches: Data)
