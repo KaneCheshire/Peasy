@@ -10,27 +10,6 @@ import Foundation
 
 public struct Response: Hashable {
 	
-	public enum Status: Int {
-		case ok = 200
-		case notFound = 401
-		case internalServerError = 500
-	}
-	
-	public struct Header: Hashable {
-		let name: String
-		let value: String
-		
-		public init(name: String, value: String) {
-			self.name = name
-			self.value = value
-		}
-		
-		public enum Name: String {
-			case contentType = "Content-Type"
-			case userAgent = "cache-control"
-		}
-	}
-	
 	let status: Status
 	let headers: [Header]
 	let body: Data
@@ -51,7 +30,34 @@ public struct Response: Hashable {
 	
 }
 
+public extension Response {
+	
+	enum Status: Hashable {
+		case ok
+		case notFound
+		case internalServerError
+		case code(Int, message: String)
+	}
+	
+	struct Header: Hashable {
+		let name: String
+		let value: String
+		
+		public init(name: String, value: String) {
+			self.name = name
+			self.value = value
+		}
+	}
+	
+	
+}
+
 public extension Response.Header {
+	
+	enum Name: String {
+		case contentType = "Content-Type"
+		case userAgent = "cache-control"
+	}
 	
 	init(name: Name, value: String) {
 		self.name = name.rawValue
@@ -82,16 +88,26 @@ extension Response.Header {
 
 extension Response.Status {
 	
-	var httpRep: String {
-		return "\(rawValue) \(textRep)"
+	var code: Int {
+		switch self {
+			case .ok: return 200
+			case .notFound: return 401
+			case .internalServerError: return 500
+			case .code(let code, _): return code
+		}
 	}
 	
-	var textRep: String {
+	var message: String {
 		switch self {
 			case .ok: return "OK"
 			case .notFound: return "Not Found"
 			case .internalServerError: return "Internal Server Error"
+			case .code(_, let message): return message
 		}
+	}
+	
+	var httpRep: String {
+		return "\(code) \(message)"
 	}
 	
 }
