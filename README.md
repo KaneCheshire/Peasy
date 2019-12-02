@@ -40,7 +40,7 @@ server.start()
 ```
 
 By default, Peasy starts the server on 8880, but you can override this and choose
-and port you want:
+any port you want:
 
 ```swift
 server.start(port: 8080)
@@ -118,7 +118,7 @@ A: Technically yeah, but these APIs have been around forever and haven't been de
 Q: Can I use this in my app for the App Store?
 
 A: Peasy is designed for UI tests but also works in regular apps. Peasy doesn't use
-and private APIs, so shouldn't be rejected, but it will also depend on what you're using Peasy for.
+any private APIs, so shouldn't be rejected, but it will also depend on what you're using Peasy for.
 
 ## Credits
 
