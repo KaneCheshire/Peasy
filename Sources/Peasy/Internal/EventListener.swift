@@ -41,8 +41,8 @@ final class EventListener {
 	private func performCheck() {
 		events().forEach { e in
 			handlers[e]!()
-			start()
 		}
+		start()
 	}
 	
 	private func setState(_ state: Int32, socket: Int32) {
