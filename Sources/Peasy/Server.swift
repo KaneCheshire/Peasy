@@ -58,7 +58,7 @@ public final class Server {
 		switch state {
 			case .running(let socket, let eventListener):
 				print("Stopping...")
-				eventListener.close()
+				eventListener.stop()
 				socket.close()
 				connections.removeAll()
 				configurations.removeAll()
@@ -72,21 +72,26 @@ public final class Server {
 	private func createSocket(bindingTo port: Int) {
 		let socket = Socket()
 		socket.bind(port: port)
-		let eventListener = EventListener(socket: socket) { [weak self] in self?.handleIncomingConnection() }
+		let eventListener = EventListener()
+		eventListener.register(socket) { [weak self] in
+			self?.handleIncomingConnection()
+		}
+		eventListener.start()
 		state = .running(socket, eventListener)
 		print("Started server on port", port)
 	}
 	
 	private func handleIncomingConnection() {
 		switch state {
-			case .running(let socket, _): acceptClientSocket(from: socket)
+			case .running(let socket, let eventListener):
+				acceptClientSocket(from: socket, eventListener: eventListener)
 			case .notRunning: break
 		}
 	}
 	
-	private func acceptClientSocket(from socket: Socket) {
+	private func acceptClientSocket(from socket: Socket, eventListener: EventListener) {
 		let clientSocket = socket.accept()
-		let connection = Connection(client: clientSocket) { [weak self] event, connection in
+		let connection = Connection(client: clientSocket, eventListener: eventListener) { [weak self] event, connection in
 			self?.handle(event, for: connection)
 		}
 		connections.insert(connection)
