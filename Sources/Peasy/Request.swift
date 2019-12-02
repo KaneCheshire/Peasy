@@ -8,9 +8,26 @@
 
 import Foundation
 
+/// Represents a request received from a client (i.e. browser or app).
 public struct Request: Hashable {
 	
-	public enum Method: String {
+	/// The method of the request, i.e. `.get`, `.post` etc.
+	public let method: Method
+	/// Any headers received from the request.
+	public let headers: [Header]
+	/// The path of the request, i.e. `/path/to/endpoint`
+	public let path: String
+	/// Any query parameters received from the request.
+	public let queryParameters: [QueryParameter]
+	/// The body data of the request (might be empty).
+	public let body: Data
+	
+}
+
+public extension Request {
+	
+	/// Represents the method of the request.
+	enum Method: String {
 		case get = "GET"
 		case post = "POST"
 		case put = "PUT"
@@ -18,7 +35,8 @@ public struct Request: Hashable {
 		case head = "HEAD"
 	}
 	
-	public struct QueryParameter: Hashable {
+	/// Represents a query parameter in the request.
+	struct QueryParameter: Hashable {
 		let name: String
 		let value: String?
 		
@@ -28,12 +46,7 @@ public struct Request: Hashable {
 		}
 	}
 	
-	public typealias Header = Response.Header
-	
-	public let method: Method
-	public let headers: [Header]
-	public let path: String
-	public let queryParameters: [QueryParameter]
-	public let body: Data
+	/// Represents a header in a request.
+	typealias Header = Response.Header
 	
 }
