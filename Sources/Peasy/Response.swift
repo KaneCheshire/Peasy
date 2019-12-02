@@ -16,7 +16,7 @@ public struct Response: Hashable {
 		case internalServerError = 500
 	}
 	
-	public struct Header: Hashable { // TODO: Provide defaults like content type etc
+	public struct Header: Hashable {
 		let name: String
 		let value: String
 		
@@ -27,7 +27,7 @@ public struct Response: Hashable {
 		
 		public enum Name: String {
 			case contentType = "Content-Type"
-			case userAgent = "cache-control" // TODO: Might just be request only which would be a good case for two different Header structs
+			case userAgent = "cache-control"
 		}
 	}
 	
