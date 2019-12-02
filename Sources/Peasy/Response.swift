@@ -8,32 +8,65 @@
 
 import Foundation
 
+/// Represents a response to a request that the server can make.
 public struct Response: Hashable {
 	
-	let status: Status
-	let headers: [Header]
-	let body: Data
+	/// The status of the response, i.e. `.ok`, `.notFound` etc.
+	public let status: Status
+	/// The headers to send in the response.
+	public let headers: Set<Header>
+	/// The data that makes up the body (can be empty).
+	public let body: Data
 	
-	public init(status: Status, headers: [Header] = [], body: Data = Data()) {
+	/// Creates a new response taking raw data as the body.
+	/// - Parameters:
+	///   - status: The status of the response.
+	///   - headers: Any headers to send with the response.
+	///   - body: The body of the response (as raw data).
+	public init(status: Status, headers: Set<Header> = [], body: Data = Data()) {
 		self.status = status
 		self.headers = headers
 		self.body = body
 	}
 	
-	public init(status: Status, headers: [Header] = [], body: String) {
+	/// Creates a new response taking a string as the body (which is converted to data for you).
+	/// - Parameters:
+	///   - status: The status of the response.
+	///   - headers: Any headers to send with the response.
+	///   - body: The body of the response as a string. This is automatically turned into data for you.
+	public init(status: Status, headers: Set<Header> = [], body: String) {
 		self = Response(status: status, headers: headers, body: Data(body.utf8))
 	}
 	
-	public init<Body: Encodable>(status: Status, headers: [Header] = [], body: Body, encoder: JSONEncoder = .prettyPrinted) {
+	/// Creates a new response taking an Encodable value as the body, which is automatically encoded into data for you.
+	/// - Parameters:
+	///   - status: The status of the response.
+	///   - headers: Any headers to send with the response.
+	///   - body: The body of the response as an Encodable value. This is automatically turned into data for you.
+	///   - encoder: An optional encoder you can provide if you need control over the encoding.
+	public init<Body: Encodable>(status: Status, headers: Set<Header> = [], body: Body, encoder: JSONEncoder = .prettyPrinted) {
 		self = Response(status: status, headers: headers, body: try! encoder.encode(body))
+	}
+	
+	/// Creates a new response taking a URL pointing to some data as the body. The data from the URL is automatically loaded for you.
+	/// You can pass a URL to a local file on disk (recommended) but will work with any URL.
+	///
+	/// - Parameters:
+	///   - status: The status of the response.
+	///   - headers: Any headers to send with the response.
+	///   - body: A URL pointing to some data to be loaded as the data for the body.
+	public init(status: Status, headers: Set<Header> = [], body: URL) {
+		self = Response(status: status, headers: headers, body: try! Data(contentsOf: body))
 	}
 	
 }
 
 public extension Response {
 	
+	/// Represents a HTTP status code.
 	enum Status: Hashable {
 		case ok
+		case noContent
 		case notFound
 		case badRequest
 		case unauthorized
@@ -42,6 +75,7 @@ public extension Response {
 		case code(Int, message: String)
 	}
 	
+	/// Represents a HTTP header.
 	struct Header: Hashable {
 		let name: String
 		let value: String
@@ -51,7 +85,6 @@ public extension Response {
 			self.value = value
 		}
 	}
-	
 	
 }
 
@@ -94,6 +127,7 @@ private extension Response.Status {
 	var code: Int {
 		switch self {
 			case .ok: return 200
+			case .noContent: return 204
 			case .badRequest: return 400
 			case .unauthorized: return 401
 			case .notFound: return 404
@@ -106,6 +140,7 @@ private extension Response.Status {
 	var message: String {
 		switch self {
 			case .ok: return "OK"
+			case .noContent: return "No Content"
 			case .badRequest: return "Bad Request"
 			case .unauthorized: return "Unauthorized"
 			case .notFound: return "Not Found"
