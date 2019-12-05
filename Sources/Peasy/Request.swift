@@ -22,6 +22,17 @@ public struct Request: Hashable {
 	/// The body data of the request (might be empty).
 	public let body: Data
 	
+	private var variables: [String: String] = [:]
+	
+	/// Returns a variable value for a key.
+	/// Variable values are populated by requests matching a `.path` rule with variables, i.e.
+	/// `"/path/:variable_name"`, which you would then be able to get the value of with
+	/// `request["variable_name"]`.
+	public subscript(_ key: String) -> String {
+		guard let value = variables[key] else { fatalError("No value found for \(key)") }
+		return value
+	}
+	
 }
 
 public extension Request {
@@ -48,5 +59,20 @@ public extension Request {
 	
 	/// Represents a header in a request.
 	typealias Header = Response.Header
+	
+}
+
+extension Request {
+	
+	init(header: RequestParser.RequestHeader, body: Data) {
+		self = Request(method: header.method, headers: header.headers, path: header.path, queryParameters: header.queryParams, body: body)
+	}
+	
+	mutating func updateParams(from rules: [Server.Rule]) {
+		guard let pathWithVariables = rules.firstPath else { return }
+		guard let urlWithVariables = URL(string: pathWithVariables) else { fatalError("Path must be a valid URL path, not \(pathWithVariables)") }
+		guard let url = URL(string: path) else { fatalError("Path must be a valid URL path, not \(path)") }
+		variables = url.variableValues(from: urlWithVariables)
+	}
 	
 }

@@ -17,7 +17,7 @@ struct RequestParser {
 		case finished(Request)
 	}
 	
-	fileprivate typealias RequestHeader = (method: Request.Method, path: String, headers: [Request.Header], queryParams: [Request.QueryParameter])
+	typealias RequestHeader = (method: Request.Method, path: String, headers: [Request.Header], queryParams: [Request.QueryParameter])
 	
 	private var state: State = .notStarted
 	
@@ -120,14 +120,6 @@ struct RequestParser {
 		let header = parseHeader(headerData)
 		let contentHeader = header.headers.first { $0.name.lowercased() == "content-length" }
 		return Int(contentHeader?.value ?? "") ?? 0
-	}
-	
-}
-
-private extension Request {
-	
-	init(header: RequestParser.RequestHeader, body: Data) {
-		self = Request(method: header.method, headers: header.headers, path: header.path, queryParameters: header.queryParams, body: body)
 	}
 	
 }

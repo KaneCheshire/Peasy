@@ -16,10 +16,16 @@ final class ViewController: UIViewController {
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		server.start()
-		server.respond(with: .image, when: .path(matches: "/image"))
-		server.respond(with: .json, when: .path(matches: "/json")) { request in
-			print("Request received", request)
-		}
+//		server.respond(with: .image, when: .path(matches: "/image"))
+//		server.respond(with: .json, when: .path(matches: "/json"))
+//		server.respond(with: {
+//			.json
+//		}, when: .path(matches: "/json"))
+		
+		server.respond(with: { request in
+			print("Received request", request[":arg"], request[":variable"], request[":anoth"])
+			return .json
+		}, when: .path(matches: "/path/:arg/another/:variable/:anoth/"))
 	}
 	
 }
