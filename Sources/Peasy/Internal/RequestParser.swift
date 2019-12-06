@@ -35,24 +35,9 @@ struct RequestParser {
 		let body = data[rangeOfHeaderEnd.upperBound ..< data.endIndex]
 		switch state {
 			case .notStarted:
-				let length = contentLength(from: header)
-				if body.count >= length {
-					let parsedHeader = parseHeader(header)
-					state = .finished(Request(header: parsedHeader, body: body))
-				} else {
-					let progress = Float(body.count) / Float(length)
-					state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
-			}
+				handle(fullHeader: header, body: body)
 			case .receivingHeader(let partialHeader):
-				let fullHeader = partialHeader + header
-				let length = contentLength(from: fullHeader)
-				if body.count >= length {
-					let parsedHeader = parseHeader(fullHeader)
-					state = .finished(Request(header: parsedHeader, body: body))
-				} else {
-					let progress = Float(body.count) / Float(length)
-					state = .receivingBody(fullHeader: fullHeader, partialBody: body, progress: progress)
-			}
+				handle(fullHeader: partialHeader + header, body: body)
 			case .finished, .receivingBody: fatalError("Shouldn't be possible")
 		}
 	}
@@ -63,17 +48,20 @@ struct RequestParser {
 				state = .receivingHeader(partialHeader: partialData)
 			case .receivingHeader(let partialHeader):
 				state = .receivingHeader(partialHeader: partialHeader + partialData)
-			case .receivingBody(let header, let partialBody, _):
-				let length = contentLength(from: header)
-				let body = partialBody + partialData
-				if body.count >= length {
-					let parsedHeader = parseHeader(header)
-					state = .finished(Request(header: parsedHeader, body: body))
-				} else {
-					let progress = Float(body.count) / Float(length)
-					state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
-			}
+			case .receivingBody(let fullHeader, let partialBody, _):
+				handle(fullHeader: fullHeader, body: partialBody + partialData)
 			case .finished: fatalError()
+		}
+	}
+	
+	private mutating func handle(fullHeader: Data, body: Data) {
+		let length = contentLength(from: fullHeader)
+		if body.count >= length {
+			let parsedHeader = parseHeader(fullHeader)
+			state = .finished(Request(header: parsedHeader, body: body))
+		} else {
+			let progress = Float(body.count) / Float(length)
+			state = .receivingBody(fullHeader: fullHeader, partialBody: body, progress: progress)
 		}
 	}
 	
