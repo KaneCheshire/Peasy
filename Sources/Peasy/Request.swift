@@ -64,6 +64,14 @@ public extension Request {
 
 extension Request {
 	
+	init(method: Method, headers: [Header], path: String, queryParameters: [QueryParameter], body: Data) {
+		self.method = method
+		self.headers = headers
+		self.path = path
+		self.queryParameters = queryParameters
+		self.body = body
+	}
+	
 	init(header: RequestParser.RequestHeader, body: Data) {
 		self = Request(method: header.method, headers: header.headers, path: header.path, queryParameters: header.queryParams, body: body)
 	}

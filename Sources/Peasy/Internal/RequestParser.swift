@@ -36,7 +36,7 @@ struct RequestParser {
 		switch state {
 			case .notStarted:
 				let length = contentLength(from: header)
-				if body.count == length {
+				if body.count >= length {
 					let parsedHeader = parseHeader(header)
 					state = .finished(Request(header: parsedHeader, body: body))
 				} else {
@@ -46,15 +46,14 @@ struct RequestParser {
 			case .receivingHeader(let partialHeader):
 				let fullHeader = partialHeader + header
 				let length = contentLength(from: fullHeader)
-				if body.count == length {
-					let parsedHeader = parseHeader(header)
+				if body.count >= length {
+					let parsedHeader = parseHeader(fullHeader)
 					state = .finished(Request(header: parsedHeader, body: body))
 				} else {
 					let progress = Float(body.count) / Float(length)
-					state = .receivingBody(fullHeader: header, partialBody: body, progress: progress)
+					state = .receivingBody(fullHeader: fullHeader, partialBody: body, progress: progress)
 			}
 			case .finished, .receivingBody: fatalError("Shouldn't be possible")
-			
 		}
 	}
 	
@@ -67,7 +66,7 @@ struct RequestParser {
 			case .receivingBody(let header, let partialBody, _):
 				let length = contentLength(from: header)
 				let body = partialBody + partialData
-				if body.count == length {
+				if body.count >= length {
 					let parsedHeader = parseHeader(header)
 					state = .finished(Request(header: parsedHeader, body: body))
 				} else {

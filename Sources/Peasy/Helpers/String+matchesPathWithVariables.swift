@@ -14,8 +14,8 @@ extension String {
 		let variableComponents = pathWithVariables.split(separator: "/")
 		guard constantComponents.count == variableComponents.count else { return false }
 		for (constant, possiblyVariable) in zip(constantComponents, variableComponents) {
-			let isConstant = !possiblyVariable.starts(with: ":")
-			guard !isConstant else { continue }
+			let isVariable = possiblyVariable.starts(with: ":")
+			guard !isVariable else { continue }
 			if constant != possiblyVariable { return false }
 		}
 		return true
