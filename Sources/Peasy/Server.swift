@@ -131,7 +131,7 @@ public final class Server {
 	private func handle(_ request: Request, for connection: Connection) {
 		guard let config = configurations.matching(request) else { return }
 		var request = request
-		request.updateParams(from: config.rules)
+		request.updateVariables(from: config.rules)
 		connection.respond(to: request, with: config.response(request))
 		handle(used: config)
 	}

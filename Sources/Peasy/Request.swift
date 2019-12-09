@@ -76,7 +76,7 @@ extension Request {
 		self = Request(method: header.method, headers: header.headers, path: header.path, queryParameters: header.queryParams, body: body)
 	}
 	
-	mutating func updateParams(from rules: [Server.Rule]) {
+	mutating func updateVariables(from rules: [Server.Rule]) {
 		guard let pathWithVariables = rules.firstPath else { return }
 		guard let urlWithVariables = URL(string: pathWithVariables) else { fatalError("Path must be a valid URL path, not \(pathWithVariables)") }
 		guard let url = URL(string: path) else { fatalError("Path must be a valid URL path, not \(path)") }

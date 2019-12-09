@@ -16,7 +16,7 @@ final class Array_variableIndicesTests: XCTestCase {
 	}
 	
 	func test_indices() {
-		let components: [String] = ["a", ":b", ":c", "d", ":efg:"]
+		let components: [String] = ["a", ":b", ":c", "d", ":efg:", "h:"]
 		XCTAssertEqual(components.variableIndices, [1, 2, 4])
 	}
 	

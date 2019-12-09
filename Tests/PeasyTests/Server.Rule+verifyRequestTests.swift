@@ -53,6 +53,8 @@ final class ServerRule_verifyRequestTests: XCTestCase {
 		XCTAssertFalse(Server.Rule.path(matches: "/a/c").verify(reqB))
 		XCTAssertFalse(Server.Rule.path(matches: "/a/b/").verify(reqB))
 		XCTAssertTrue(Server.Rule.path(matches: "/a/b/c/").verify(reqB))
+		XCTAssertTrue(Server.Rule.path(matches: "a/b/c/").verify(reqB))
+		XCTAssertTrue(Server.Rule.path(matches: "a/b/c").verify(reqB))
 		
 		let reqC = Request(method: .get, headers: [], path: "/x/y/z", queryParameters: [], body: Data())
 		XCTAssertTrue(Server.Rule.path(matches: "/:a/:b/:c").verify(reqC))
