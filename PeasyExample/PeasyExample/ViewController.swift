@@ -17,9 +17,14 @@ final class ViewController: UIViewController {
 		super.viewDidLoad()
 		server.start()
 		server.respond(with: .image, when: .path(matches: "/image"))
-		server.respond(with: .json, when: .path(matches: "/json")) { request in
-			print("Request received", request)
-		}
+		server.respond(with: {
+			.json
+		}, when: .path(matches: "/json"))
+		
+		server.respond(with: { request in
+			print("Received request", request[":variable"])
+			return .json
+		}, when: .path(matches: "/path/:variable"))
 	}
 	
 }
