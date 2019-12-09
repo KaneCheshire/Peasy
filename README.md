@@ -90,15 +90,38 @@ server.respond(with: response, when: customRule)
 
 ## Intercepting requests
 
-There might be times when you want to know when Peasy is about to send a response so you
-have access to the request. For example, so you can keep track of all the analytics sent
-from the app:
+There might be times when you want to know when Peasy has received a request so you
+you know how to respond or take some other action like track certain requests (i.e. analytics):
 
 ```swift
 var analytics: [Request] = []
-server.respond(with: response, when: .path(matches: "/analytics-event")) { request in
+server.respond(with { request in
   analytics.append(request)
-}
+  return response
+}, when: .path(matches: "/analytics-event"))
+```
+
+## Wildcards and variables in paths
+
+It's common to use wildcards and variables in paths that may be dynamic. Peasy supports
+this by allowing you to indicate which parts of the path can be dynamic with the `:variable`
+syntax:
+
+```swift
+server.respond(with: response, when: .path(matches: "/constant/:variable"))
+```
+
+The name after `:` can be anything you like, but that path component must exist otherwise
+the rule will fail to match (i.e. `"/constant/"` is not valid, but `"/constant/value"` is).
+
+If you want to get the value of a variable you can do so using a key-value subscript on the
+request:
+
+```swift
+server.respond(with { request in
+  print("The value is", request["variable"])
+  return response
+}, when: .path(matches: "/constant/:variable"))
 ```
 
 ## FAQs
