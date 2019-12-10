@@ -92,7 +92,8 @@ public extension Response.Header {
 	
 	enum Name: String {
 		case contentType = "Content-Type"
-		case userAgent = "cache-control"
+		case userAgent = "User-Agent"
+		case contentLength = "Content-Length"
 	}
 	
 	init(name: Name, value: String) {
@@ -106,8 +107,7 @@ extension Response {
 	
 	var httpRep: Data {
 		let combinedHeaders = [Header(name: "Connection", value: "Closed"),
-													 Header(name: "Server", value: "Sprite"),
-													 Header(name: "Content-Type", value: "text/html; charset=UTF-8")] + headers
+													 Header(name: "Server", value: "codes.kane.Peasy")] + headers
 		let string = "HTTP/1.1 \(status.httpRep)\r\n\(combinedHeaders.httpRep)\r\n\r\n"
 		return Data(string.utf8) + body
 	}
