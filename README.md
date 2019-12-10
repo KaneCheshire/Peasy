@@ -5,6 +5,9 @@
 [![License](https://img.shields.io/cocoapods/l/Peasy.svg?style=flat)](http://cocoapods.org/pods/Peasy)
 [![Platform](https://img.shields.io/cocoapods/p/Peasy.svg?style=flat)](http://cocoapods.org/pods/Peasy)
 
+[![Closed Issues](https://img.shields.io/github/issues-closed-raw/kanecheshire/Peasy)](https://github.com/KaneCheshire/Peasy/issues?q=is%3Aissue+is%3Aclosed)
+[![Open Issues](https://img.shields.io/github/issues-raw/kanecheshire/Peasy)](https://github.com/kanecheshire/Peasy/issues)
+
 A lightweight mock server written purely in Swift,
 that you can run directly _in_ your UI tests, with no need for any external
 process to be spun up as part of the tests. 🎉
