@@ -92,7 +92,8 @@ public extension Response.Header {
 	
 	enum Name: String {
 		case contentType = "Content-Type"
-		case userAgent = "cache-control"
+		case userAgent = "User-Agent"
+		case contentLength = "Content-Length"
 	}
 	
 	init(name: Name, value: String) {
