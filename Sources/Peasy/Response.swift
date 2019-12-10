@@ -106,7 +106,7 @@ extension Response {
 	
 	var httpRep: Data {
 		let combinedHeaders = [Header(name: "Connection", value: "Closed"),
-													 Header(name: "Server", value: "Sprite")] + headers
+													 Header(name: "Server", value: "codes.kane.Peasy")] + headers
 		let string = "HTTP/1.1 \(status.httpRep)\r\n\(combinedHeaders.httpRep)\r\n\r\n"
 		return Data(string.utf8) + body
 	}
