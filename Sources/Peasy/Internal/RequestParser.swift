@@ -10,6 +10,9 @@ import Foundation
 
 struct RequestParser {
 	
+	// MARK: - Custom Types -
+	// MARK: Internal
+	
 	enum State {
 		case notStarted
 		case receivingHeader(partialHeader: Data)
@@ -19,44 +22,51 @@ struct RequestParser {
 	
 	typealias RequestHeader = (method: Request.Method, path: String, headers: [Request.Header], queryParams: [Request.QueryParameter])
 	
+	// MARK: - Properties -
+	// MARK: Private
+	
 	private var state: State = .notStarted
+	
+	// MARK: - Functions -
+	// MARK: Internal
 	
 	mutating func parse(_ data: Data) -> State {
 		switch state {
 		case .notStarted:
-			if let rangeOfHeaderEnd = data.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) {
-				handle(rangeOfHeaderEnd: rangeOfHeaderEnd, in: data)
-			} else {
-				state = .receivingHeader(partialHeader: data)
-			}
+			handle(partialHeader: data)
 		case .receivingHeader(partialHeader: let partialHeader):
-			let data = partialHeader + data
-			if let rangeOfHeaderEnd = data.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) {
-				handle(rangeOfHeaderEnd: rangeOfHeaderEnd, in: data)
-			} else {
-				state = .receivingHeader(partialHeader: data)
-			}
+			handle(partialHeader: partialHeader + data)
 		case .receivingBody(fullHeader: let fullHeader, partialBody: let partialBody, progress: _):
-			handle(fullHeader: fullHeader, body: partialBody + data)
+			handle(fullHeader: fullHeader, partialBody: partialBody + data)
 		case .finished: fatalError()
 		}
 		return state
 	}
 	
+	// MARK: Private
+	
+	private mutating func handle(partialHeader: Data) {
+		if let rangeOfHeaderEnd = partialHeader.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) {
+			handle(rangeOfHeaderEnd: rangeOfHeaderEnd, in: partialHeader)
+		} else {
+			state = .receivingHeader(partialHeader: partialHeader)
+		}
+	}
+	
 	private mutating func handle(rangeOfHeaderEnd: Range<Data.Index>, in data: Data) {
 		let header = data[data.startIndex ..< rangeOfHeaderEnd.lowerBound]
 		let body = data[rangeOfHeaderEnd.upperBound ..< data.endIndex]
-		handle(fullHeader: header, body: body)
+		handle(fullHeader: header, partialBody: body)
 	}
 
-	private mutating func handle(fullHeader: Data, body: Data) {
-		let length = contentLength(from: fullHeader)
-		if body.count >= length {
-			let parsedHeader = parseHeader(fullHeader)
-			state = .finished(Request(header: parsedHeader, body: body))
+	private mutating func handle(fullHeader: Data, partialBody: Data) {
+		let parsedHeader = parseHeader(fullHeader)
+		let length = contentLength(from: parsedHeader)
+		if partialBody.count >= length {
+			state = .finished(Request(header: parsedHeader, body: partialBody))
 		} else {
-			let progress = Float(body.count) / Float(length)
-			state = .receivingBody(fullHeader: fullHeader, partialBody: body, progress: progress)
+			let progress = Float(partialBody.count) / Float(length)
+			state = .receivingBody(fullHeader: fullHeader, partialBody: partialBody, progress: progress)
 		}
 	}
 	
@@ -98,9 +108,8 @@ struct RequestParser {
 		}
 	}
 	
-	private func contentLength(from headerData: Data) -> Int {
-		let header = parseHeader(headerData)
-		let contentHeader = header.headers.first { $0.name.lowercased() == "content-length" }
+	private func contentLength(from parsedHeader: RequestHeader) -> Int {
+		let contentHeader = parsedHeader.headers.first { $0.name.lowercased() == "content-length" }
 		return Int(contentHeader?.value ?? "") ?? 0
 	}
 	
