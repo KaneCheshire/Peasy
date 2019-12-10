@@ -137,6 +137,11 @@ final class RequestParserTests: XCTestCase {
 		XCTAssertEqual(partialHeader, Data())
 	}
 	
+	func test_headerEndSplitOverEvents() {
+		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r\nHeader:Value\r\n")) else { return XCTFail("Wrong state") }
+		guard case .finished = parser.parse(Data("\r\n")) else { return XCTFail("Wrong state") }
+	}
+	
 }
 
 extension Data {

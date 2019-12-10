@@ -22,10 +22,23 @@ struct RequestParser {
 	private var state: State = .notStarted
 	
 	mutating func parse(_ data: Data) -> State {
-		if let rangeOfHeaderEnd = data.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) {
-			handle(rangeOfHeaderEnd: rangeOfHeaderEnd, in: data)
-		} else {
-			handle(partialData: data)
+		switch state {
+		case .notStarted:
+			if let rangeOfHeaderEnd = data.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) {
+				handle(rangeOfHeaderEnd: rangeOfHeaderEnd, in: data)
+			} else {
+				state = .receivingHeader(partialHeader: data)
+			}
+		case .receivingHeader(partialHeader: let partialHeader):
+			let data = partialHeader + data
+			if let rangeOfHeaderEnd = data.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) {
+				handle(rangeOfHeaderEnd: rangeOfHeaderEnd, in: data)
+			} else {
+				state = .receivingHeader(partialHeader: data)
+			}
+		case .receivingBody(fullHeader: let fullHeader, partialBody: let partialBody, progress: _):
+			handle(fullHeader: fullHeader, body: partialBody + data)
+		case .finished: fatalError()
 		}
 		return state
 	}
@@ -33,27 +46,9 @@ struct RequestParser {
 	private mutating func handle(rangeOfHeaderEnd: Range<Data.Index>, in data: Data) {
 		let header = data[data.startIndex ..< rangeOfHeaderEnd.lowerBound]
 		let body = data[rangeOfHeaderEnd.upperBound ..< data.endIndex]
-		switch state {
-			case .notStarted:
-				handle(fullHeader: header, body: body)
-			case .receivingHeader(let partialHeader):
-				handle(fullHeader: partialHeader + header, body: body)
-			case .finished, .receivingBody: fatalError("Shouldn't be possible")
-		}
+		handle(fullHeader: header, body: body)
 	}
-	
-	private mutating func handle(partialData: Data) {
-		switch state {
-			case .notStarted:
-				state = .receivingHeader(partialHeader: partialData)
-			case .receivingHeader(let partialHeader):
-				state = .receivingHeader(partialHeader: partialHeader + partialData)
-			case .receivingBody(let fullHeader, let partialBody, _):
-				handle(fullHeader: fullHeader, body: partialBody + partialData)
-			case .finished: fatalError()
-		}
-	}
-	
+
 	private mutating func handle(fullHeader: Data, body: Data) {
 		let length = contentLength(from: fullHeader)
 		if body.count >= length {
