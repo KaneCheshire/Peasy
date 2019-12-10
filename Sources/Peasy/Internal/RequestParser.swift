@@ -33,11 +33,11 @@ struct RequestParser {
 	mutating func parse(_ data: Data) -> State {
 		switch state {
 		case .notStarted:
-			handle(partialHeader: data)
+			state = handle(partialHeader: data)
 		case .receivingHeader(partialHeader: let partialHeader):
-			handle(partialHeader: partialHeader + data)
+			state = handle(partialHeader: partialHeader + data)
 		case .receivingBody(fullHeader: let fullHeader, partialBody: let partialBody, progress: _):
-			handle(fullHeader: fullHeader, partialBody: partialBody + data)
+			state = handle(fullHeader: fullHeader, partialBody: partialBody + data)
 		case .finished: fatalError()
 		}
 		return state
@@ -45,28 +45,24 @@ struct RequestParser {
 	
 	// MARK: Private
 	
-	private mutating func handle(partialHeader: Data) {
+	private func handle(partialHeader: Data) -> State {
 		if let rangeOfHeaderEnd = partialHeader.range(of: Data([0x0D, 0x0A, 0x0D, 0x0A])) {
-			handle(rangeOfHeaderEnd: rangeOfHeaderEnd, in: partialHeader)
+			let header = partialHeader[partialHeader.startIndex ..< rangeOfHeaderEnd.lowerBound]
+			let body = partialHeader[rangeOfHeaderEnd.upperBound ..< partialHeader.endIndex]
+			return handle(fullHeader: header, partialBody: body)
 		} else {
-			state = .receivingHeader(partialHeader: partialHeader)
+			return .receivingHeader(partialHeader: partialHeader)
 		}
 	}
-	
-	private mutating func handle(rangeOfHeaderEnd: Range<Data.Index>, in data: Data) {
-		let header = data[data.startIndex ..< rangeOfHeaderEnd.lowerBound]
-		let body = data[rangeOfHeaderEnd.upperBound ..< data.endIndex]
-		handle(fullHeader: header, partialBody: body)
-	}
 
-	private mutating func handle(fullHeader: Data, partialBody: Data) {
+	private func handle(fullHeader: Data, partialBody: Data) -> State {
 		let parsedHeader = parseHeader(fullHeader)
 		let length = contentLength(from: parsedHeader)
 		if partialBody.count >= length {
-			state = .finished(Request(header: parsedHeader, body: partialBody))
+			return .finished(Request(header: parsedHeader, body: partialBody))
 		} else {
 			let progress = Float(partialBody.count) / Float(length)
-			state = .receivingBody(fullHeader: fullHeader, partialBody: partialBody, progress: progress)
+			return .receivingBody(fullHeader: fullHeader, partialBody: partialBody, progress: progress)
 		}
 	}
 	
