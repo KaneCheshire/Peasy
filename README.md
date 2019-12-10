@@ -1,5 +1,10 @@
 # Peasy
 
+[![Actions Status](https://github.com/kanecheshire/Peasy/workflows/Swift/badge.svg)](https://github.com/kanecheshire/Peasy/actions)
+[![Version](https://img.shields.io/cocoapods/v/Peasy.svg?style=flat)](http://cocoapods.org/pods/Peasy)
+[![License](https://img.shields.io/cocoapods/l/Peasy.svg?style=flat)](http://cocoapods.org/pods/Peasy)
+[![Platform](https://img.shields.io/cocoapods/p/Peasy.svg?style=flat)](http://cocoapods.org/pods/Peasy)
+
 A lightweight mock server written purely in Swift,
 that you can run directly _in_ your UI tests, with no need for any external
 process to be spun up as part of the tests. 🎉
