@@ -140,42 +140,61 @@ final class RequestParserTests: XCTestCase {
 	func test_headerEndSplitOverEvents_splitEvenly() {
 		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r\nHeader:Value\r\n")) else { return XCTFail("Wrong state") }
 		guard case .finished(let request) = parser.parse(Data("\r\n")) else { return XCTFail("Wrong state") }
+		XCTAssertEqual(request.method, .get)
+		XCTAssertEqual(request.path, "/")
+		XCTAssertEqual(request.queryParameters, [])
+		XCTAssertEqual(request.headers, [.init(name: "Header", value: "Value")])
+		XCTAssertEqual(request.body, Data())
 	}
 	
 	func test_headerEndSplitOverEvents_splitOverFirstLineBreak() {
 		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r\nHeader:Value\r")) else { return XCTFail("Wrong state") }
 		guard case .finished(let request) = parser.parse(Data("\n\r\n")) else { return XCTFail("Wrong state") }
+		XCTAssertEqual(request.method, .get)
+		XCTAssertEqual(request.path, "/")
+		XCTAssertEqual(request.queryParameters, [])
+		XCTAssertEqual(request.headers, [.init(name: "Header", value: "Value")])
+		XCTAssertEqual(request.body, Data())
 	}
 	
 	func test_headerEndSplitOverEvents_splitOverSecondLineBreak() {
 		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r\nHeader:Value\r\n\r")) else { return XCTFail("Wrong state") }
 		guard case .finished(let request) = parser.parse(Data("\n")) else { return XCTFail("Wrong state") }
-	}
-	
-	func test_headerEndSplitOverEvents_splitOverSecondLineBreak_withContent_receiveBodyAfter() {
-		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r\nContent-Length: 2\r\n\r\\")) else { return XCTFail("Wrong state") }
-		guard case .receivingBody = parser.parse(Data("n")) else { return }
-		guard case .finished(let request) = parser.parse(Data("ab")) else { return XCTFail("Wrong state") }
-	}
-	
-	func test_headerEndSplitOverEvents_splitOverSecondLineBreak_withContent_receiveBodyDuring() {
-		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r\nContent-Length: 2\r\n\r\\")) else { return XCTFail("Wrong state") }
-		guard case .finished(let request) = parser.parse(Data("nab")) else { return }
+		XCTAssertEqual(request.method, .get)
+		XCTAssertEqual(request.path, "/")
+		XCTAssertEqual(request.queryParameters, [])
+		XCTAssertEqual(request.headers, [.init(name: "Header", value: "Value")])
+		XCTAssertEqual(request.body, Data())
 	}
 	
 	func test_headerEndSplitOverEvents_noHeaders_splitEvenly() {
 		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r\n")) else { return XCTFail("Wrong state") }
 		guard case .finished(let request) = parser.parse(Data("\r\n")) else { return XCTFail("Wrong state") }
+		XCTAssertEqual(request.method, .get)
+		XCTAssertEqual(request.path, "/")
+		XCTAssertEqual(request.queryParameters, [])
+		XCTAssertEqual(request.headers, [])
+		XCTAssertEqual(request.body, Data())
 	}
 	
 	func test_headerEndSplitOverEvents_noHeaders_splitOverFirst() {
 		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r")) else { return XCTFail("Wrong state") }
 		guard case .finished(let request) = parser.parse(Data("\n\r\n")) else { return XCTFail("Wrong state") }
+		XCTAssertEqual(request.method, .get)
+		XCTAssertEqual(request.path, "/")
+		XCTAssertEqual(request.queryParameters, [])
+		XCTAssertEqual(request.headers, [])
+		XCTAssertEqual(request.body, Data())
 	}
 	
 	func test_headerEndSplitOverEvents_noHeaders_splitOverLast() {
 		guard case .receivingHeader(let partialHeader) = parser.parse(Data("GET / \r\n\r")) else { return XCTFail("Wrong state") }
 		guard case .finished(let request) = parser.parse(Data("\n")) else { return XCTFail("Wrong state") }
+		XCTAssertEqual(request.method, .get)
+		XCTAssertEqual(request.path, "/")
+		XCTAssertEqual(request.queryParameters, [])
+		XCTAssertEqual(request.headers, [])
+		XCTAssertEqual(request.body, Data())
 	}
 	
 }
