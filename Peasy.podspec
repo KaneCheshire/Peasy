@@ -1,7 +1,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'Peasy'
-  s.version          = '0.4.0'
+  s.version          = '1.0.0'
   s.summary          = 'Easy peasy Swift mock server for embedding directly into UI tests.'
 
   s.description      = <<-DESC
