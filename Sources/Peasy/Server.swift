@@ -14,6 +14,13 @@ import Foundation
 public final class Server {
 	
 	// MARK: - Properties -
+	// MARK: Public
+	
+	/// The port that the server has been started on
+	///
+	/// Returns nil if the server hasn't been started or has been stopped
+	public var port: Int?
+	
 	// MARK: Private
 	
 	private var state: State = .notRunning
@@ -30,7 +37,7 @@ public final class Server {
 	
 	/// Starts the server on the specified port (or the default port if no port is specified)
 	///
-	/// It is an error to attempt to start more than one server on the same port without calling `stop`  on the previous servers first.
+	/// An error will be thrown when starting more than one server on the same port without calling `stop`  on the previous servers first.
 	public func start(port: Int = 8880) throws {
 		switch state {
 			case .notRunning: try createSocket(bindingTo: port)
@@ -87,6 +94,7 @@ public final class Server {
 				connections.removeAll()
 				configurations.removeAll()
 				state = .notRunning
+				port = nil
 			case .notRunning: fatalError("Cannot stop server because it's not running.")
 		}
 	}
@@ -102,6 +110,7 @@ public final class Server {
 		}
 		eventListener.start()
 		state = .running(socket, eventListener)
+		self.port = port
 		print("Started server on port", port)
 	}
 	
