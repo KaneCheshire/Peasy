@@ -148,7 +148,7 @@ public final class Server {
 	
 	private func respond(with response: @escaping (Request) -> Response, when rules: [Rule], removeAfterResponding: Bool) {
 		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding)
-		configurations.append(config)
+		configurations.insert(config, at: 0)
 	}
 	
 }
