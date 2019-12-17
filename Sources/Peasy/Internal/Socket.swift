@@ -22,9 +22,9 @@ final class Socket {
 		Darwin.close(tag)
 	}
 	
-	func bind(port: Int) {
+	func bind(port: Int) throws {
 		var reuse: Int32 = 1
-		guard setsockopt(tag, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) >= 0 else { fatalError(DarwinError().message) }
+		guard setsockopt(tag, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) >= 0 else { throw DarwinError() }
 		var address = sockaddr_in6()
 		address.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.stride)
 		address.sin6_family = sa_family_t(AF_INET6)
@@ -32,14 +32,14 @@ final class Socket {
 		address.sin6_addr = .localhost
 		let size = socklen_t(MemoryLayout<sockaddr_in6>.size)
 		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { Darwin.bind(tag, $0, size) >= 0 } }
-		guard success else { fatalError(DarwinError().message) }
+		guard success else { throw DarwinError() }
 		print("Bound to port", port)
-		listen()
+		try listen()
 	}
 	
-	private func listen() {
+	private func listen() throws {
 		let success = Darwin.listen(tag, Int32(SOMAXCONN)) >= 0
-		guard success else { fatalError(DarwinError().message) }
+		guard success else { throw DarwinError() }
 		print("Listening on socket", tag)
 	}
 	

@@ -15,7 +15,7 @@ final class ViewController: UIViewController {
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		server.start()
+		try! server.start()
 		server.respond(with: .image, when: .path(matches: "/image"))
 		server.respond(with: {
 			.json
