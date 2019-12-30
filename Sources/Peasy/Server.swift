@@ -40,11 +40,11 @@ public final class Server {
 	
 	/// Starts the server on a port in the specified range, returns the port the server was started on.
 	///
-	/// It will error if there is no available port in the range.
-	public func start<T: Collection>(port portRange: T) -> Int where T.Element == Int {
+	/// It will error if there is no available port in the collection.
+	public func start<T: Collection>(port ports: T) -> Int where T.Element == Int {
 		switch state {
 			case .notRunning:
-				for port in portRange {
+				for port in ports {
 					do {
 						try createSocket(bindingTo: port)
 						return port
