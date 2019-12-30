@@ -14,13 +14,6 @@ import Foundation
 public final class Server {
 	
 	// MARK: - Properties -
-	// MARK: Public
-	
-	/// The port that the server has been started on
-	///
-	/// Returns nil if the server hasn't been started or has been stopped
-	public var port: Int?
-	
 	// MARK: Private
 	
 	private var state: State = .notRunning
@@ -37,10 +30,27 @@ public final class Server {
 	
 	/// Starts the server on the specified port (or the default port if no port is specified)
 	///
-	/// An error will be thrown when starting more than one server on the same port without calling `stop`  on the previous servers first.
-	public func start(port: Int = 8880) throws {
+	/// It is an error to attempt to start more than one server on the same port without calling `stop`  on the previous servers first.
+	public func start(port: Int = 8880) {
 		switch state {
-			case .notRunning: try createSocket(bindingTo: port)
+			case .notRunning: try! createSocket(bindingTo: port)
+			case .running: fatalError("Cannot start server because it's already started.")
+		}
+	}
+	
+	/// Starts the server on a port in the specified range, returns the port the server was started on.
+	///
+	/// It will error if there is no available port in the range.
+	public func start<T: Collection>(port portRange: T) -> Int where T.Element == Int {
+		switch state {
+			case .notRunning:
+				for port in portRange {
+					do {
+						try createSocket(bindingTo: port)
+						return port
+					} catch {}
+				}
+				fatalError("Cannot start server because no ports were available")
 			case .running: fatalError("Cannot start server because it's already started.")
 		}
 	}
@@ -94,7 +104,6 @@ public final class Server {
 				connections.removeAll()
 				configurations.removeAll()
 				state = .notRunning
-				port = nil
 			case .notRunning: fatalError("Cannot stop server because it's not running.")
 		}
 	}
@@ -110,7 +119,6 @@ public final class Server {
 		}
 		eventListener.start()
 		state = .running(socket, eventListener)
-		self.port = port
 		print("Started server on port", port)
 	}
 	
