@@ -1,0 +1,6 @@
+framework module Peasy {
+  umbrella header "Peasy-umbrella.h"
+
+  export *
+  module * { export * }
+}

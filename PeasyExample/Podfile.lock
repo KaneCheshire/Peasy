@@ -1,0 +1,16 @@
+PODS:
+  - Peasy (1.0.0)
+
+DEPENDENCIES:
+  - Peasy (from `../`)
+
+EXTERNAL SOURCES:
+  Peasy:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  Peasy: 0075b95e348f631ee3fd3de8484a861704ea79eb
+
+PODFILE CHECKSUM: 521278b333c04b70a23f2e9e2afb5f8f11cfbd64
+
+COCOAPODS: 1.8.4

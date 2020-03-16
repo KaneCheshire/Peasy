@@ -1,0 +1,12 @@
+platform :ios, '8.0'
+
+target 'PeasyExample' do
+  use_frameworks!
+
+  pod 'Peasy', :path => '../'
+
+  target 'PeasyExampleUITests' do
+    pod 'Peasy', :path => '../'
+  end
+
+end
