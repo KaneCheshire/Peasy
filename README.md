@@ -12,6 +12,13 @@ A lightweight mock server written purely in Swift,
 that you can run directly _in_ your UI tests, with no need for any external
 process to be spun up as part of the tests. 🎉
 
+- [Quick start](#quick-start)
+- [Starting & stopping the server](#starting-and-stopping-the-server)
+- [Configuring responses](#configuring-responses)
+- [Default & override responses](#default-and-override-responses)
+- [Intercepting requests](#intercepting-requests)
+- [Wildcards & variables in paths](#wildcards-and-variables-in-paths)
+
 ## Quick start
 
 Simply create and start a server in your tests, then tell it what to respond
@@ -96,10 +103,33 @@ let customRule: Rule = .custom { request in
 server.respond(with: response, when: customRule)
 ```
 
+## Default and override responses
+
+It's common to want to set a "default" response to a request, but sometimes override
+it.
+
+For example, in a UI test, you might want to set the default response as happy path, but then
+test that if the request is made again what happens if you get a different response.
+
+Peasy supports this by allowing you to indicate whether a set of rules are removed after they're
+matched with `removeAfterResponding`:
+
+```swift
+server.respond(with: happyPathResponse, when: .path(matches: "/api")) // removeAfterResponding defaults to false, so this will persist
+
+server.respond(with: unhappyPathResponse, when: .path(matches: "/api"), removeAfterResponding: true) // This will match before the happy path response and will be removed after responding
+```
+
+In the case of multiple configurations matching a request (as above), Peasy will use the last set one (the unhappy path one above). Since we're also telling the unhappy path response to be removed after responding,
+Peasy will then carry on matching the first configuration (the happy path) until a new override response is set.
+
 ## Intercepting requests
 
 There might be times when you want to know when Peasy has received a request so you
-you know how to respond or take some other action like track certain requests (i.e. analytics):
+you know how to respond or take some other action, like track certain requests (i.e. analytics).
+
+Peasy supports this by allowing you to provide a handler to return a response where the request is
+provided to you as an argument:
 
 ```swift
 var analytics: [Request] = []
