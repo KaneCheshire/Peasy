@@ -17,7 +17,6 @@ final class Socket {
 	}
 	
 	func close() {
-		print("Closing socket", tag)
 		shutdown(tag, SHUT_WR)
 		Darwin.close(tag)
 	}
@@ -33,14 +32,12 @@ final class Socket {
 		let size = socklen_t(MemoryLayout<sockaddr_in6>.size)
 		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { Darwin.bind(tag, $0, size) >= 0 } }
 		guard success else { fatalError(DarwinError().message) }
-		print("Bound to port", port)
 		listen()
 	}
 	
 	private func listen() {
 		let success = Darwin.listen(tag, Int32(SOMAXCONN)) >= 0
 		guard success else { fatalError(DarwinError().message) }
-		print("Listening on socket", tag)
 	}
 	
 	func accept() -> Socket {
@@ -48,21 +45,20 @@ final class Socket {
 		var size = socklen_t(MemoryLayout<sockaddr_in6>.size)
 		let tag = withUnsafeMutablePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { Darwin.accept(self.tag, $0, &size) } }
 		guard tag >= 0 else { fatalError(DarwinError().message) }
-		print("Accepted incoming socket", tag)
 		return Socket(tag: tag)
 	}
 	
 	func read() -> Result<Data, DarwinError> {
 		let maxBytes = 1024
 		var data = Data(count: maxBytes)
-		let bytesRead = data.withUnsafeMutableBytes { recv(tag, $0, maxBytes, 0) }
+		let bytesRead = data.withUnsafeMutableBytes { recv(tag, $0.baseAddress, maxBytes, 0) }
 		guard bytesRead >= 0 else { return .failure(.init()) }
 		return .success(data[..<bytesRead])
 	}
 	
 	func write(_ data: Data) -> Result<Void, DarwinError> {
 		var data = data
-		let bytesSent = data.withUnsafeBytes { Darwin.send(tag, $0, data.count, 0) }
+        let bytesSent = data.withUnsafeBytes { Darwin.send(tag, $0.baseAddress, data.count, 0) }
 		guard bytesSent >= 0 else { return .failure(.init()) }
 		data.removeSubrange(..<bytesSent)
 		return data.isEmpty ? .success(()) : write(data)

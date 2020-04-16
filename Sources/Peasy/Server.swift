@@ -81,7 +81,6 @@ public final class Server {
 	public func stop() {
 		switch state {
 			case .running(let socket, let eventListener):
-				print("Stopping...")
 				eventListener.stop()
 				socket.close()
 				connections.removeAll()
@@ -129,15 +128,16 @@ public final class Server {
 	}
 	
 	private func handle(_ request: Request, for connection: Connection) {
-		guard let config = configurations.matching(request) else { return }
+        guard let config = configurations[request] else { return }
 		var request = request
 		request.updateVariables(from: config.rules)
-		connection.respond(to: request, with: config.response(request))
+        let response = config.response(request)
+		connection.respond(with: response)
 		handle(used: config)
 	}
 	
 	private func handle(used config: Configuration) {
-		guard config.removeAfterResponding, let index = configurations.firstIndex(of: config) else { return }
+		guard config.removeAfterResponding, let index = configurations.lastIndex(of: config) else { return }
 		configurations.remove(at: index)
 	}
 	
@@ -152,14 +152,12 @@ public extension Server {
 	
 	/// Represents a rule to match requests with.
 	enum Rule {
-		
 		case method(matches: Request.Method)
 		case path(matches: String)
 		case headers(contain: Request.Header)
 		case queryParameters(contain: Request.QueryParameter)
 		case body(matches: Data)
 		case custom((Request) -> Bool)
-		
 	}
 	
 }

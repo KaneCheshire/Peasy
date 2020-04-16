@@ -37,7 +37,7 @@ final class Connection {
 		client.close()
 	}
 	
-	func respond(to request: Request, with response: Response) {
+	func respond(with response: Response) {
 		switch client.write(response.httpRep) {
 			case .success: break
 			case .failure(let error): fatalError(error.message)
