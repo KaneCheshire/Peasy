@@ -16,6 +16,7 @@ extension Target {
 
 let package = Package(
     name: peasyLibrary.name,
+    platforms: [.iOS(.v8), .watchOS(.v2), .tvOS(.v9), .macOS(.v10_10)],
     products: [peasyLibrary],
     targets: [peasyTarget, peasyTarget.testTarget]
 )
