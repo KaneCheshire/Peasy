@@ -17,6 +17,7 @@ final class ViewController: UIViewController {
 		super.viewDidLoad()
 		server.start()
 		server.respond(with: .image, when: .path(matches: "/image"))
+        server.respond(with: .json, when: .path(matches: "/image"), removeAfterResponding: true)
 		server.respond(with: {
 			.json
 		}, when: .path(matches: "/json"))

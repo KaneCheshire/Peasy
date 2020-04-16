@@ -8,12 +8,17 @@
 import Foundation
 
 extension Array where Element == Server.Configuration {
+    
+    subscript(_ request: Request) -> Element? {
+        return filter { $0.matches(request) }.last
+    }
 	
-	func matching(_ request: Request) -> Element? {
-		return first { config in
-			let nonMatchingRule = config.rules.first { $0.verify(request) == false }
-			return nonMatchingRule == nil
-		}
-	}
-	
+}
+
+extension Server.Configuration {
+    
+    func matches(_ request: Request) -> Bool {
+        return rules.filter { !$0.verify(request) }.isEmpty
+    }
+    
 }
