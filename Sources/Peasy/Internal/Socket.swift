@@ -21,24 +21,34 @@ final class Socket {
 		Darwin.close(tag)
 	}
 	
-	func bind(port: Int) {
-		var reuse: Int32 = 1
-		guard setsockopt(tag, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) >= 0 else { fatalError(DarwinError().message) }
-		var address = sockaddr_in6()
-		address.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.stride)
-		address.sin6_family = sa_family_t(AF_INET6)
-		address.sin6_port = UInt16(port).bigEndian
-		address.sin6_addr = .localhost
+	func bind(port: Int) -> Int {
+        enableAddressReuse()
+        var address: sockaddr_in6 = .localhost(port: port)
 		let size = MemoryLayout<sockaddr_in6>.size
-		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: size) { Darwin.bind(tag, $0, socklen_t(size)) >= 0 } }
-		guard success else { fatalError(DarwinError().message) }
-		listen()
+        let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: size) { Darwin.bind(tag, $0, socklen_t(size)) >= 0 } }
+        guard success else { fatalError(DarwinError().message) }
+        listen()
+		return boundPort()
 	}
+    
+    private func enableAddressReuse() {
+        var reuse = Int32(truncating: true)
+        let success = setsockopt(tag, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) >= 0
+        guard success else { fatalError(DarwinError().message) }
+    }
 	
 	private func listen() {
 		let success = Darwin.listen(tag, SOMAXCONN) >= 0
 		guard success else { fatalError(DarwinError().message) }
 	}
+    
+    private func boundPort() -> Int {
+        var size = socklen_t(MemoryLayout<sockaddr_in6>.size)
+        var usedAddress = sockaddr_in6()
+        let success = withUnsafeMutablePointer(to: &usedAddress) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { getsockname(tag, $0, &size) >= 0 } }
+        guard success else { fatalError(DarwinError().message) }
+        return Int(usedAddress.sin6_port.bigEndian)
+    }
 	
 	func accept() -> Socket {
         var address = sockaddr_in6()
@@ -66,12 +76,25 @@ final class Socket {
 	
 }
 
-extension in6_addr {
+private extension in6_addr {
 	
-	static var localhost: in6_addr {
+	static var localhost: Self {
 		var result: in6_addr = in6_addr()
 		_ = "::1".withCString { inet_pton(AF_INET6, $0, &result) }
 		return result
 	}
 	
+}
+
+private extension sockaddr_in6 {
+    
+    static func localhost(port: Int) -> Self {
+        var address = sockaddr_in6()
+        address.sin6_len = UInt8(MemoryLayout<sockaddr_in6>.stride)
+        address.sin6_family = sa_family_t(AF_INET6)
+        address.sin6_port = UInt16(port).bigEndian
+        address.sin6_addr = .localhost
+        return address
+    }
+    
 }

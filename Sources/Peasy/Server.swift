@@ -31,9 +31,12 @@ public final class Server {
 	/// Starts the server on the specified port (or the default port if no port is specified)
 	///
 	/// It is an error to attempt to start more than one server on the same port without calling `stop`  on the previous servers first.
-	public func start(port: Int = 8880) {
+	/// - Parameter port: The port that should be used to bind the server to. Specify port `0` to let the operating system choose an available port for you.
+	/// - Returns: Port the server listens on
+	@discardableResult
+	public func start(port: Int = 8880) -> Int {
 		switch state {
-			case .notRunning: createSocket(bindingTo: port)
+			case .notRunning: return createSocket(bindingTo: port)
 			case .running: fatalError("Cannot start server because it's already started.")
 		}
 	}
@@ -95,9 +98,9 @@ public final class Server {
 	
 	// MARK: Private
 	
-	private func createSocket(bindingTo port: Int) {
+	private func createSocket(bindingTo port: Int) -> Int {
 		let socket = Socket()
-		socket.bind(port: port)
+		let port = socket.bind(port: port)
 		let eventListener = EventListener()
 		eventListener.register(socket) { [weak self] in
 			self?.handleIncomingConnection()
@@ -105,6 +108,7 @@ public final class Server {
 		eventListener.start()
 		state = .running(socket, eventListener)
 		print("Started server on port", port)
+		return port
 	}
 	
 	private func handleIncomingConnection() {
