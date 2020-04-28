@@ -55,8 +55,8 @@ let server = Server()
 server.start()
 ```
 
-By default, Peasy starts the server on 8880, but you can override this and choose
-any port you want:
+By default, Peasy starts the server on whatever port is available on the system,
+but you can override this and choose any specific port you want:
 
 ```swift
 server.start(port: 8080)

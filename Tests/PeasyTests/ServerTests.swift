@@ -3,6 +3,20 @@ import XCTest
 
 final class ServerTests: XCTestCase {
 
+	func testChoosesAvailableByDefault() {
+		let serverA = Server()
+		let serverB = Server()
+		defer {
+			serverA.stop()
+			serverB.stop()
+		}
+		let portA = serverA.start()
+		let portB = serverB.start()
+		
+		XCTAssertNotEqual(portA, portB)
+	}
+	
+	
     func testBindPort() throws {
         let server = Server()
         let port = 8880
