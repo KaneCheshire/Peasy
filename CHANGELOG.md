@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## Pending
+
+- Added support for letting the system decide what available port to start on (issue #27, #1) @ChaosCoder
+- Added support for delaying responses, allowing you to simulate slow network conditions causing timeouts etc. (issue #15)
+
+---
+
 ## 1.1.0
 
 - Updated to find the _last_ matching config, not the first, allowing you to set default responses and then have overrides (issue #23)
