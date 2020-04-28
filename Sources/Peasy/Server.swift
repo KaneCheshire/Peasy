@@ -36,8 +36,8 @@ public final class Server {
 	@discardableResult
 	public func start(port: Int = 8880) -> Int {
 		switch state {
-			case .notRunning: return createSocket(bindingTo: port)
-			case .running: fatalError("Cannot start server because it's already started.")
+		case .notRunning: return createSocket(bindingTo: port)
+		case .running: fatalError("Cannot start server because it's already started.")
 		}
 	}
 	
@@ -49,10 +49,10 @@ public final class Server {
 	/// - Parameters:
 	///   - response: The response to respond to the matching request with.
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
-    ///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
+	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
-    public func respond(with response: Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
-        respond(with: { _ in response }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+	public func respond(with response: Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+		respond(with: { _ in response }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
 	/// Configures the server to respond to requests that match the provided rules.
@@ -63,10 +63,10 @@ public final class Server {
 	/// - Parameters:
 	///   - response: A handler that is performed for you to take some action on request before providing a response.
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
-    ///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
+	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
 	public func respond(with response: @escaping () -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
-        respond(with: { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+		respond(with: { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
 	/// Configures the server to respond to requests that match the provided rules.
@@ -77,7 +77,7 @@ public final class Server {
 	/// - Parameters:
 	///   - response: A handler that is performed for you to take some action on request before providing a response. The Request is provided to you to inspect as part of this handler.
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
-    ///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
+	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
 	public func respond(with response: @escaping (Request) -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
 		respond(with: response, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
@@ -86,13 +86,13 @@ public final class Server {
 	/// Stops the server and frees up the port used when calling `start`.
 	public func stop() {
 		switch state {
-			case .running(let socket, let eventListener):
-				eventListener.stop()
-				socket.close()
-				connections.removeAll()
-				configurations.removeAll()
-				state = .notRunning
-			case .notRunning: fatalError("Cannot stop server because it's not running.")
+		case .running(let socket, let eventListener):
+			eventListener.stop()
+			socket.close()
+			connections.removeAll()
+			configurations.removeAll()
+			state = .notRunning
+		case .notRunning: fatalError("Cannot stop server because it's not running.")
 		}
 	}
 	
@@ -113,9 +113,9 @@ public final class Server {
 	
 	private func handleIncomingConnection() {
 		switch state {
-			case .running(let socket, let eventListener):
-				acceptClientSocket(from: socket, eventListener: eventListener)
-			case .notRunning: break
+		case .running(let socket, let eventListener):
+			acceptClientSocket(from: socket, eventListener: eventListener)
+		case .notRunning: break
 		}
 	}
 	
@@ -129,38 +129,38 @@ public final class Server {
 	
 	private func handle(_ event: Connection.Event, for connection: Connection) {
 		switch event {
-			case .requestReceived(let request): handle(request, for: connection)
-			case .finished: connections.remove(connection)
+		case .requestReceived(let request): handle(request, for: connection)
+		case .finished: connections.remove(connection)
 		}
 	}
 	
 	private func handle(_ request: Request, for connection: Connection) {
-        guard let config = configurations[request] else { return }
+		guard let config = configurations[request] else { return }
 		var request = request
 		request.updateVariables(from: config.rules)
-        let handler: () -> Void = { [weak self] in
-            self?.respond(to: request, for: connection, with: config)
-        }
-        if let interval = config.delay {
-            DispatchQueue.shared.asyncAfter(deadline: .now() + interval, execute: handler)
-        } else {
-            handler()
-        }
+		let handler: () -> Void = { [weak self] in
+			self?.respond(to: request, for: connection, with: config)
+		}
+		if let interval = config.delay {
+			DispatchQueue.shared.asyncAfter(deadline: .now() + interval, execute: handler)
+		} else {
+			handler()
+		}
 	}
-    
-    private func respond(to request: Request, for connection: Connection, with config: Configuration) {
-        let response = config.response(request)
-        connection.respond(with: response)
-        handle(used: config)
-    }
+	
+	private func respond(to request: Request, for connection: Connection, with config: Configuration) {
+		let response = config.response(request)
+		connection.respond(with: response)
+		handle(used: config)
+	}
 	
 	private func handle(used config: Configuration) {
 		guard config.removeAfterResponding, let index = configurations.lastIndex(of: config) else { return }
 		configurations.remove(at: index)
 	}
 	
-    private func respond(with response: @escaping (Request) -> Response, when rules: [Rule], removeAfterResponding: Bool, delay: TimeInterval?) {
-        let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+	private func respond(with response: @escaping (Request) -> Response, when rules: [Rule], removeAfterResponding: Bool, delay: TimeInterval?) {
+		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 		configurations.append(config)
 	}
 	
@@ -192,7 +192,7 @@ extension Server {
 		let response: (Request) -> Response
 		let rules: [Rule]
 		let removeAfterResponding: Bool
-        let delay: TimeInterval?
+		let delay: TimeInterval?
 	}
 	
 }

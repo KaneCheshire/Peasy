@@ -24,12 +24,12 @@ final class EventListener {
 		item = DispatchWorkItem { [weak self] in
 			self?.performCheck()
 		}
-        DispatchQueue.shared.async(execute: item)
+		DispatchQueue.shared.async(execute: item)
 	}
 	
 	func register(_ socket: Socket, _ handler: @escaping () -> Void) {
 		handlers[socket.tag] = handler
-        setState(EV_ADD, socket: socket.tag)
+		setState(EV_ADD, socket: socket.tag)
 	}
 	
 	func unregister(_ socket: Socket) {

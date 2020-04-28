@@ -9,6 +9,6 @@ import Foundation
 
 extension DispatchQueue {
     
-    static let shared = DispatchQueue(label: "codes.kane.Peasy", qos: .background, target: nil)
+	static let shared = DispatchQueue(label: "codes.kane.Peasy", qos: .background, target: nil)
     
 }
