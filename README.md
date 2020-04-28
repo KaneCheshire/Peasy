@@ -16,6 +16,7 @@ process to be spun up as part of the tests. 🎉
 - [Starting & stopping the server](#starting-and-stopping-the-server)
 - [Configuring responses](#configuring-responses)
 - [Default & override responses](#default-and-override-responses)
+- [Delaying requests](#delaying-requests)
 - [Intercepting requests](#intercepting-requests)
 - [Wildcards & variables in paths](#wildcards-and-variables-in-paths)
 
@@ -122,6 +123,18 @@ server.respond(with: unhappyPathResponse, when: .path(matches: "/api"), removeAf
 
 In the case of multiple configurations matching a request (as above), Peasy will use the last set one (the unhappy path one above). Since we're also telling the unhappy path response to be removed after responding,
 Peasy will then carry on matching the first configuration (the happy path) until a new override response is set.
+
+## Delaying requests
+
+You might want to slow responses down on your Peasy servers, for example to write a UI test to test what happens when a request times out.
+
+Peasy makes this really easy, just provide a TimeInterval when configuring your responses:
+
+```swift
+server.respond(with: response, when: .path(matches: "/api"), delay: 60)
+```
+
+By default, Peasy will respond immediately to requests you've told it to respond to. You must provide an explicit delay if you want a delay.
 
 ## Intercepting requests
 
