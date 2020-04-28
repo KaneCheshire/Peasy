@@ -46,9 +46,10 @@ public final class Server {
 	/// - Parameters:
 	///   - response: The response to respond to the matching request with.
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
+    ///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
-	public func respond(with response: Response, when rules: Rule..., removeAfterResponding: Bool = false) {
-		respond(with: { _ in response }, when: rules, removeAfterResponding: removeAfterResponding)
+    public func respond(with response: Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+        respond(with: { _ in response }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
 	/// Configures the server to respond to requests that match the provided rules.
@@ -59,9 +60,10 @@ public final class Server {
 	/// - Parameters:
 	///   - response: A handler that is performed for you to take some action on request before providing a response.
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
+    ///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
-	public func respond(with response: @escaping () -> Response, when rules: Rule..., removeAfterResponding: Bool = false) {
-		respond(with: { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding)
+	public func respond(with response: @escaping () -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+        respond(with: { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
 	/// Configures the server to respond to requests that match the provided rules.
@@ -72,9 +74,10 @@ public final class Server {
 	/// - Parameters:
 	///   - response: A handler that is performed for you to take some action on request before providing a response. The Request is provided to you to inspect as part of this handler.
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
+    ///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
-	public func respond(with response: @escaping (Request) -> Response, when rules: Rule..., removeAfterResponding: Bool = false) {
-		respond(with: response, when: rules, removeAfterResponding: removeAfterResponding)
+	public func respond(with response: @escaping (Request) -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+		respond(with: response, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
 	/// Stops the server and frees up the port used when calling `start`.
@@ -131,18 +134,29 @@ public final class Server {
         guard let config = configurations[request] else { return }
 		var request = request
 		request.updateVariables(from: config.rules)
-        let response = config.response(request)
-		connection.respond(with: response)
-		handle(used: config)
+        let handler: () -> Void = { [weak self] in
+            self?.respond(to: request, for: connection, with: config)
+        }
+        if let interval = config.delay {
+            DispatchQueue.shared.asyncAfter(deadline: .now() + interval, execute: handler)
+        } else {
+            handler()
+        }
 	}
+    
+    private func respond(to request: Request, for connection: Connection, with config: Configuration) {
+        let response = config.response(request)
+        connection.respond(with: response)
+        handle(used: config)
+    }
 	
 	private func handle(used config: Configuration) {
 		guard config.removeAfterResponding, let index = configurations.lastIndex(of: config) else { return }
 		configurations.remove(at: index)
 	}
 	
-	private func respond(with response: @escaping (Request) -> Response, when rules: [Rule], removeAfterResponding: Bool) {
-		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding)
+    private func respond(with response: @escaping (Request) -> Response, when rules: [Rule], removeAfterResponding: Bool, delay: TimeInterval?) {
+        let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 		configurations.append(config)
 	}
 	
@@ -174,6 +188,7 @@ extension Server {
 		let response: (Request) -> Response
 		let rules: [Rule]
 		let removeAfterResponding: Bool
+        let delay: TimeInterval?
 	}
 	
 }

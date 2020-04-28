@@ -29,20 +29,20 @@ final class Socket {
 		address.sin6_family = sa_family_t(AF_INET6)
 		address.sin6_port = UInt16(port).bigEndian
 		address.sin6_addr = .localhost
-		let size = socklen_t(MemoryLayout<sockaddr_in6>.size)
-		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { Darwin.bind(tag, $0, size) >= 0 } }
+		let size = MemoryLayout<sockaddr_in6>.size
+		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: size) { Darwin.bind(tag, $0, socklen_t(size)) >= 0 } }
 		guard success else { fatalError(DarwinError().message) }
 		listen()
 	}
 	
 	private func listen() {
-		let success = Darwin.listen(tag, Int32(SOMAXCONN)) >= 0
+		let success = Darwin.listen(tag, SOMAXCONN) >= 0
 		guard success else { fatalError(DarwinError().message) }
 	}
 	
 	func accept() -> Socket {
-		var address = sockaddr_in6()
-		var size = socklen_t(MemoryLayout<sockaddr_in6>.size)
+        var address = sockaddr_in6()
+        var size = socklen_t(MemoryLayout<sockaddr_in6>.size)
 		let tag = withUnsafeMutablePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { Darwin.accept(self.tag, $0, &size) } }
 		guard tag >= 0 else { fatalError(DarwinError().message) }
 		return Socket(tag: tag)
@@ -58,7 +58,7 @@ final class Socket {
 	
 	func write(_ data: Data) -> Result<Void, DarwinError> {
 		var data = data
-        let bytesSent = data.withUnsafeBytes { Darwin.send(tag, $0.baseAddress, data.count, 0) }
+        let bytesSent = data.withUnsafeBytes { send(tag, $0.baseAddress, data.count, 0) }
 		guard bytesSent >= 0 else { return .failure(.init()) }
 		data.removeSubrange(..<bytesSent)
 		return data.isEmpty ? .success(()) : write(data)

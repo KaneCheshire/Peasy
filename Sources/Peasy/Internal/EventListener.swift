@@ -11,7 +11,6 @@ final class EventListener {
 	
 	private let queue = kqueue()
 	private var handlers: [Int32: () -> Void] = [:]
-	private let dispatchQueue = DispatchQueue(label: "codes.kane.Peasy.EventLoop", qos: .background, target: nil)
 	private var item = DispatchWorkItem {}
 	
 	func stop() {
@@ -25,12 +24,12 @@ final class EventListener {
 		item = DispatchWorkItem { [weak self] in
 			self?.performCheck()
 		}
-		dispatchQueue.async(execute: item)
+        DispatchQueue.shared.async(execute: item)
 	}
 	
 	func register(_ socket: Socket, _ handler: @escaping () -> Void) {
 		handlers[socket.tag] = handler
-		setState(EV_ADD, socket: socket.tag)
+        setState(EV_ADD, socket: socket.tag)
 	}
 	
 	func unregister(_ socket: Socket) {
@@ -46,15 +45,15 @@ final class EventListener {
 	}
 	
 	private func setState(_ state: Int32, socket: Int32) {
-		var events = [Darwin.kevent(ident: UInt(socket), filter: Int16(EVFILT_READ), flags: UInt16(state), fflags: 0, data: 0, udata: nil)]
+		var events = [kevent(ident: UInt(socket), filter: Int16(EVFILT_READ), flags: UInt16(state), fflags: 0, data: 0, udata: nil)]
 		let eventCount = events.count
 		let success = events.withUnsafeMutableBufferPointer { kevent(queue, $0.baseAddress, Int32(eventCount), nil, 0, nil) >= 0 }
 		guard success else { fatalError(DarwinError().message) }
 	}
 	
 	private func events() -> [Int32] {
-		var timeout = timespec.interval(0.1)
-		var events = Array<Darwin.kevent>(repeating: kevent(), count: 1024)
+		var timeout = timespec()
+		var events = Array<kevent>(repeating: kevent(), count: 1024)
 		let success = events.withUnsafeMutableBufferPointer { kevent(queue, nil, 0, $0.baseAddress, 1024, &timeout) >= 0 }
 		guard success else { fatalError(DarwinError().message) }
 		return events.compactMap { event in

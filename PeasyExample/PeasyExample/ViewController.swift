@@ -12,21 +12,40 @@ import Peasy
 final class ViewController: UIViewController {
 	
 	private let server = Server()
+    let session: URLSession = {
+        let session = URLSession(configuration: .default)
+        return session
+    }()
 	
 	override func viewDidLoad() {
 		super.viewDidLoad()
 		server.start()
-		server.respond(with: .image, when: .path(matches: "/image"))
-        server.respond(with: .json, when: .path(matches: "/image"), removeAfterResponding: true)
-		server.respond(with: {
-			.json
-		}, when: .path(matches: "/json"))
-		
-		server.respond(with: { request in
-			print("Received request", request[":variable"])
-			return .json
-		}, when: .path(matches: "/path/:variable"))
+        server.respond(with: .image, when: .path(matches: "/image"))
+        server.respond(with: .json, when: .path(matches: "/json"))
+        a(i: 0)
+        b(i: 0)
 	}
+    
+    private func a(i: Int) {
+        let url = URL(string: "http://localhost:8880/image")!
+        let startedA = Date()
+        let task = session.dataTask(with: url, completionHandler: { data, _, error in
+            print("A", i, Date().timeIntervalSince(startedA))
+            assert(error == nil)
+            self.b(i: i + 1)
+        })
+        task.resume()
+    }
+    
+    private func b(i: Int) {
+        let startedB = Date()
+        let taskB = session.dataTask(with: URL(string: "http://localhost:8880/json")!, completionHandler: { data, _, error in
+            print("B", i, Date().timeIntervalSince(startedB))
+            assert(error == nil)
+            self.a(i: i + 1)
+        })
+        taskB.resume()
+    }
 	
 }
 
