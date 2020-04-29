@@ -2,6 +2,10 @@
 
 ## Pending
 
+---
+
+## 1.2.0
+
 - Added support for letting the system decide what available port to start on. (issue #27, #1) @ChaosCoder
 - Peasy now chooses the available port by default, this may cause compatibility issues if you are expecting the default to be 8880.
 - Added support for delaying responses, allowing you to simulate slow network conditions causing timeouts etc. (issue #15)
