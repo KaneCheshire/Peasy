@@ -36,7 +36,25 @@ public final class Server {
 	@discardableResult
 	public func start(port: Int = 0) -> Int {
 		switch state {
-		case .notRunning: return createSocket(bindingTo: port)
+		case .notRunning: return try! createSocket(bindingTo: port)
+		case .running: fatalError("Cannot start server because it's already started.")
+		}
+	}
+	
+	/// Starts the server on the first available port in the given range
+	///
+	/// - Parameter ports: The range of ports the server should attempt to start on
+	/// - Returns: Port the server listens on
+	@discardableResult
+	public func start(ports: Range<Int>) -> Int {
+		switch state {
+		case .notRunning:
+			for port in ports {
+				if let socket = try? createSocket(bindingTo: port) {
+					return socket
+				}
+			}
+			fatalError("Cannot start server because no ports were available")
 		case .running: fatalError("Cannot start server because it's already started.")
 		}
 	}
@@ -98,9 +116,9 @@ public final class Server {
 	
 	// MARK: Private
 	
-	private func createSocket(bindingTo port: Int) -> Int {
+	private func createSocket(bindingTo port: Int) throws -> Int {
 		let socket = Socket()
-		let port = socket.bind(port: port)
+		let port = try socket.bind(port: port)
 		let eventListener = EventListener()
 		eventListener.register(socket) { [weak self] in
 			self?.handleIncomingConnection()
@@ -120,7 +138,7 @@ public final class Server {
 	}
 	
 	private func acceptClientSocket(from socket: Socket, eventListener: EventListener) {
-		let clientSocket = socket.accept()
+		let clientSocket = try! socket.accept()
 		let connection = Connection(client: clientSocket, eventListener: eventListener) { [weak self] event, connection in
 			self?.handle(event, for: connection)
 		}

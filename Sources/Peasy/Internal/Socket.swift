@@ -21,40 +21,40 @@ final class Socket {
 		Darwin.close(tag)
 	}
 	
-	func bind(port: Int) -> Int {
-		enableAddressReuse()
+	func bind(port: Int) throws -> Int {
+		try enableAddressReuse()
 		var address: sockaddr_in6 = .localhost(port: port)
 		let size = MemoryLayout<sockaddr_in6>.size
 		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: size) { Darwin.bind(tag, $0, socklen_t(size)) >= 0 } }
-		guard success else { fatalError(DarwinError().message) }
-		listen()
-		return boundPort()
+		guard success else { throw DarwinError() }
+		try listen()
+		return try boundPort()
 	}
 	
-	private func enableAddressReuse() {
+	private func enableAddressReuse() throws {
 		var reuse = Int32(truncating: true)
 		let success = setsockopt(tag, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size)) >= 0
-		guard success else { fatalError(DarwinError().message) }
+		guard success else { throw DarwinError() }
 	}
 	
-	private func listen() {
+	private func listen() throws {
 		let success = Darwin.listen(tag, SOMAXCONN) >= 0
-		guard success else { fatalError(DarwinError().message) }
+		guard success else { throw DarwinError() }
 	}
 	
-	private func boundPort() -> Int {
+	private func boundPort() throws -> Int {
 		var size = socklen_t(MemoryLayout<sockaddr_in6>.size)
 		var usedAddress = sockaddr_in6()
 		let success = withUnsafeMutablePointer(to: &usedAddress) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { getsockname(tag, $0, &size) >= 0 } }
-		guard success else { fatalError(DarwinError().message) }
+		guard success else { throw DarwinError() }
 		return Int(usedAddress.sin6_port.bigEndian)
 	}
 	
-	func accept() -> Socket {
+	func accept() throws -> Socket {
 		var address = sockaddr_in6()
 		var size = socklen_t(MemoryLayout<sockaddr_in6>.size)
 		let tag = withUnsafeMutablePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { Darwin.accept(self.tag, $0, &size) } }
-		guard tag >= 0 else { fatalError(DarwinError().message) }
+		guard tag >= 0 else { throw DarwinError() }
 		return Socket(tag: tag)
 	}
 	
