@@ -7,6 +7,9 @@
 //
 
 import Foundation
+import CryptoKit
+
+public let anyAvailablePort: Int = 0
 
 /// This is the Peasy server.
 /// Create a server and then call  `start`.
@@ -17,7 +20,8 @@ public final class Server {
 	// MARK: Private
 	
 	private var state: State = .notRunning
-	private var connections: Set<Connection> = []
+	private var connections: Set<HTTPConnection> = []
+    private var webSocketConnections: Set<WebSocketConnection> = []
 	private var configurations: [Configuration] = []
 	
 	// MARK: - Init -
@@ -34,9 +38,9 @@ public final class Server {
 	/// - Parameter port: The port that should be used to bind the server to. Specify port `0` to let the operating system choose an available port for you.
 	/// - Returns: Port the server listens on
 	@discardableResult
-	public func start(port: Int = 0) -> Int {
+    public func start(port: Int = anyAvailablePort, queue: DispatchQueue = .shared) -> Int {
 		switch state {
-		case .notRunning: return createSocket(bindingTo: port)
+        case .notRunning: return createSocket(bindingTo: port, queue: queue)
 		case .running: fatalError("Cannot start server because it's already started.")
 		}
 	}
@@ -52,7 +56,7 @@ public final class Server {
 	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
 	public func respond(with response: Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
-		respond(with: { _ in response }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+        respond(with: .http { _ in response }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
 	/// Configures the server to respond to requests that match the provided rules.
@@ -66,7 +70,7 @@ public final class Server {
 	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
 	public func respond(with response: @escaping () -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
-		respond(with: { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+        respond(with: .http { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
 	/// Configures the server to respond to requests that match the provided rules.
@@ -80,8 +84,20 @@ public final class Server {
 	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
 	public func respond(with response: @escaping (Request) -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
-		respond(with: response, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+        respond(with: .http(response), when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
+    
+    public func respond(with response: WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+        respond(with: .webSocket { _ in response }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+    }
+    
+    public func respond(with response: @escaping () -> WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+        respond(with: .webSocket { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+    }
+    
+    public func respond(with response: @escaping (Request) -> WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+        respond(with: .webSocket(response), when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+    }
 	
 	/// Stops the server and frees up the port used when calling `start`.
 	public func stop() {
@@ -98,14 +114,14 @@ public final class Server {
 	
 	// MARK: Private
 	
-	private func createSocket(bindingTo port: Int) -> Int {
+    private func createSocket(bindingTo port: Int, queue: DispatchQueue) -> Int {
 		let socket = Socket()
 		let port = socket.bind(port: port)
 		let eventListener = EventListener()
 		eventListener.register(socket) { [weak self] in
 			self?.handleIncomingConnection()
 		}
-		eventListener.start()
+		eventListener.start(queue: queue)
 		state = .running(socket, eventListener)
 		print("Started server on port", port)
 		return port
@@ -121,46 +137,85 @@ public final class Server {
 	
 	private func acceptClientSocket(from socket: Socket, eventListener: EventListener) {
 		let clientSocket = socket.accept()
-		let connection = Connection(client: clientSocket, eventListener: eventListener) { [weak self] event, connection in
-			self?.handle(event, for: connection)
-		}
-		connections.insert(connection)
+        let connection = HTTPConnection(
+            client: clientSocket,
+            eventListener: eventListener)
+        { [weak self] request, connection in
+            self?.handle(request, for: connection)
+        }
+        connections.insert(connection)
 	}
 	
-	private func handle(_ event: Connection.Event, for connection: Connection) {
-		switch event {
-		case .requestReceived(let request): handle(request, for: connection)
-		case .finished: connections.remove(connection)
-		}
+    private func handle(_ request: Request?, for connection: HTTPConnection) {
+        if let request {
+            handle(request, for: connection)
+        } else {
+            connections.remove(connection)
+        }
 	}
 	
-	private func handle(_ request: Request, for connection: Connection) {
-		guard let config = configurations[request] else { return }
-		var request = request
-		request.updateVariables(from: config.rules)
-		let handler: () -> Void = { [weak self] in
-			self?.respond(to: request, for: connection, with: config)
-		}
-		if let interval = config.delay {
-			DispatchQueue.shared.asyncAfter(deadline: .now() + interval, execute: handler)
-		} else {
-			handler()
-		}
+    private func handle(_ request: Request, for connection: HTTPConnection) {
+        guard let config = configurations[request] else {
+            return print("Unable to find configuration for request so unable to respond: \(request)")
+        }
+        var request = request
+        request.updateVariables(from: config.rules)
+        let handler: () -> Void = { [weak self] in
+            self?.respond(to: request, for: connection, with: config)
+        }
+        if let interval = config.delay {
+            DispatchQueue.shared.asyncAfter(deadline: .now() + interval, execute: handler)
+        } else {
+            handler()
+        }
 	}
 	
-	private func respond(to request: Request, for connection: Connection, with config: Configuration) {
-		let response = config.response(request)
-		connection.respond(with: response)
-		handle(used: config)
+    private func respond(to request: Request, for connection: HTTPConnection, with config: Configuration) {
+        let sendRegularHTTPResponse = { (response: Response) in
+            connection.send(response)
+            connection.close()
+            self.connections.remove(connection) // TODO: Leak?
+        }
+        switch config.responseType {
+        case let .http(response):
+            sendRegularHTTPResponse(response(request))
+        case let .webSocket(webSocketResponse):
+            switch webSocketResponse(request) {
+            case let .reject(response):
+                sendRegularHTTPResponse(response)
+            case let .allow(webSocket):
+                if #available(macOS 10.15, *) { // TODO
+                    connection.send(.upgradeWebSocket(upgradeRequest: request))
+                    let webSocketConnection = connection.upgradeToWebSocket { frame, connection in
+                        webSocket.onFrameReceived(webSocket, frame)
+                    }
+                    webSocket.onSendFrame = { [weak webSocketConnection] frame in
+                        webSocketConnection?.send(frame)
+                    }
+                    webSocket.onClose = { [weak webSocketConnection, weak self] info in
+                        guard let connection = webSocketConnection else { return assertionFailure() }
+                        self?.close(webSocketConnection: connection, with: info)
+                    }
+                    connections.remove(connection)
+                    webSocketConnections.insert(webSocketConnection)
+                }
+            }
+        }
+        handle(used: config)
 	}
+    
+    private func close(webSocketConnection: WebSocketConnection, with info: Frame.ClosedInfo?) {
+        webSocketConnection.close(with: info)
+        webSocketConnections.remove(webSocketConnection)
+    }
 	
 	private func handle(used config: Configuration) {
 		guard config.removeAfterResponding, let index = configurations.lastIndex(of: config) else { return }
 		configurations.remove(at: index)
 	}
 	
-	private func respond(with response: @escaping (Request) -> Response, when rules: [Rule], removeAfterResponding: Bool, delay: TimeInterval?) {
-		let config = Configuration(response: response, rules: rules, removeAfterResponding: removeAfterResponding, delay: delay)
+    private func respond(with responseType: Configuration.ResponseType, when rules: [Rule], removeAfterResponding: Bool, delay: TimeInterval?) {
+        let config = Configuration(responseType: responseType, rules: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 		configurations.append(config)
 	}
 	
@@ -177,7 +232,30 @@ public extension Server {
 		case body(matches: Data)
 		case custom((Request) -> Bool)
 	}
-	
+    
+    final class WebSocketProxy {
+        
+        let onFrameReceived: (WebSocketProxy, Frame) -> Void
+        var onClose: ((Frame.ClosedInfo?) -> Void)?
+        var onSendFrame: ((Frame) -> Void)?
+        
+        public init(onFrameReceived: @escaping (WebSocketProxy, Frame) -> Void) {
+            self.onFrameReceived = onFrameReceived
+        }
+        
+        public func close(info: Frame.ClosedInfo?) {
+            onClose?(info)
+        }
+        
+        public func send(frame: Frame) {
+            onSendFrame?(frame)
+        }
+    }
+    
+    enum WebSocketResponse {
+        case allow(webSocket: WebSocketProxy)
+        case reject(with: Response)
+    }
 }
 
 extension Server {
@@ -188,19 +266,31 @@ extension Server {
 	}
 	
 	struct Configuration {
+        
+        enum ResponseType {
+            case http((Request) -> Response)
+            case webSocket((Request) -> WebSocketResponse)
+        }
+        
 		let uuid = UUID()
-		let response: (Request) -> Response
+        let responseType: ResponseType
 		let rules: [Rule]
 		let removeAfterResponding: Bool
 		let delay: TimeInterval?
 	}
-	
 }
 
 extension Server.Configuration: Equatable {
-	
+
 	static func == (lhs: Server.Configuration, rhs: Server.Configuration) -> Bool {
 		return lhs.uuid == rhs.uuid
 	}
-	
+
+}
+
+public extension Request {
+    
+    var isWebSocket: Bool {
+        self[header: "Upgrade"] == "websocket" // TODO :subscript on headers array instead?
+    }
 }

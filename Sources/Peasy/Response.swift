@@ -7,9 +7,26 @@
 //
 
 import Foundation
+import CryptoKit
 
 /// Represents a response to a request that the server can make.
 public struct Response: Hashable {
+    
+    @available(macOS 10.15, *)
+    static func upgradeWebSocket(upgradeRequest request: Request) -> Self {
+        guard let requestKey = request[header: "Sec-WebSocket-Key"] else { fatalError() }
+        let acceptData = Data((requestKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").utf8)
+        let acceptSHA1 = Data(Insecure.SHA1.hash(data: acceptData))
+        return Response(
+            status: .switchingProtocols,
+            headers: [
+                .init(name: "Upgrade", value: "websocket"),
+                .init(name: "Connection", value: "Upgrade"),
+                .init(name: "Sec-WebSocket-Accept", value: acceptSHA1.base64EncodedString()) // TODO: Protocols
+            ],
+            body: ""
+        )
+    }
 	
 	/// The status of the response, i.e. `.ok`, `.notFound` etc.
 	public let status: Status
@@ -72,11 +89,15 @@ public extension Response {
 		case unauthorized
 		case internalServerError
 		case serviceUnavailable
+        case switchingProtocols
 		case code(Int, message: String)
 	}
 	
 	/// Represents a HTTP header.
 	struct Header: Hashable {
+        
+        static let webSocketUpgrade = Self(name: "Upgrade", value: "websocket")
+        
 		let name: String
 		let value: String
 		
@@ -106,8 +127,10 @@ public extension Response.Header {
 extension Response {
 	
 	var httpRep: Data {
-		let combinedHeaders = [Header(name: "Connection", value: "Closed"),
-													 Header(name: "Server", value: "codes.kane.Peasy")] + headers
+		let combinedHeaders = [
+//            Header(name: "Connection", value: "Closed"),
+            Header(name: "Server", value: "codes.kane.Peasy")
+        ] + headers
 		let string = "HTTP/1.1 \(status.httpRep)\r\n\(combinedHeaders.httpRep)\r\n\r\n"
 		return Data(string.utf8) + body
 	}
@@ -133,6 +156,7 @@ private extension Response.Status {
 			case .notFound: return 404
 			case .internalServerError: return 500
 			case .serviceUnavailable: return 503
+            case .switchingProtocols: return 101
 			case .code(let code, _): return code
 		}
 	}
@@ -146,6 +170,7 @@ private extension Response.Status {
 			case .notFound: return "Not Found"
 			case .internalServerError: return "Internal Server Error"
 			case .serviceUnavailable: return "Service Unavailable"
+            case .switchingProtocols: return "Switching Protocols"
 			case .code(_, let message): return message
 		}
 	}

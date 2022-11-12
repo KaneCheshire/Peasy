@@ -7,7 +7,7 @@
 
 import Foundation
 
-extension DispatchQueue {
+public extension DispatchQueue {
     
 	static let shared = DispatchQueue(label: "codes.kane.Peasy", qos: .background, target: nil)
     

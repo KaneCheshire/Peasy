@@ -28,11 +28,14 @@ public struct Request: Hashable {
 	/// Variable values are populated by requests matching a `.path` rule with variables, i.e.
 	/// `"/path/:variable_name"`, which you would then be able to get the value of with
 	/// `request["variable_name"]`.
-	public subscript(_ key: String) -> String {
-		guard let value = variables[key] else { fatalError("No value found for \(key)") }
+	public subscript(variable: String) -> String {
+		guard let value = variables[variable] else { fatalError("No value found for \(variable)") }
 		return value
 	}
 	
+    public subscript(header h: String) -> String? {
+        headers.first { $0.name == h }?.value
+    }
 }
 
 public extension Request {

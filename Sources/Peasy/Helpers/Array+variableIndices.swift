@@ -9,7 +9,7 @@ import Foundation
 
 extension Array where Element == String {
 	
-	var variableIndices: [Index] {
+    var variableIndices: [Index] {
 		return enumerated().compactMap { index, component in
 			component.starts(with: ":") && component.count > 1 ? index : nil
 		}

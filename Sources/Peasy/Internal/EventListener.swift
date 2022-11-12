@@ -20,16 +20,17 @@ final class EventListener {
 		}
 	}
 	
-	func start() {
+    func start(queue: DispatchQueue) {
 		item = DispatchWorkItem { [weak self] in
-			self?.performCheck()
+			self?.performCheck(queue: queue)
 		}
-		DispatchQueue.shared.async(execute: item)
+		queue.async(execute: item)
 	}
 	
 	func register(_ socket: Socket, _ handler: @escaping () -> Void) {
-		handlers[socket.tag] = handler
-		setState(EV_ADD, socket: socket.tag)
+        if handlers.updateValue(handler, forKey: socket.tag) == nil {
+            setState(EV_ADD, socket: socket.tag)
+        }
 	}
 	
 	func unregister(_ socket: Socket) {
@@ -37,11 +38,11 @@ final class EventListener {
 		handlers[socket.tag] = nil
 	}
 	
-	private func performCheck() {
+    private func performCheck(queue: DispatchQueue) {
 		events().forEach { e in
 			handlers[e]!()
 		}
-		start()
+		start(queue: queue)
 	}
 	
 	private func setState(_ state: Int32, socket: Int32) {

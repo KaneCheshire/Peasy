@@ -8,7 +8,14 @@
 
 import Foundation
 
-final class Socket {
+final class Socket: Hashable {
+    static func == (lhs: Socket, rhs: Socket) -> Bool {
+        lhs.tag == rhs.tag
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(tag)
+    }
 	
 	let tag: Int32
 	
@@ -62,7 +69,7 @@ final class Socket {
 		let maxBytes = 1024
 		var data = Data(count: maxBytes)
 		let bytesRead = data.withUnsafeMutableBytes { recv(tag, $0.baseAddress, maxBytes, 0) }
-		guard bytesRead >= 0 else { return .failure(.init()) }
+		guard bytesRead >= 0 else { return .failure(.init()) } // TODO: Could just use this for knowing when to exit a loop rather than the callbacks
 		return .success(data[..<bytesRead])
 	}
 	
