@@ -15,6 +15,15 @@ public let anyAvailablePort: Int = 0
 /// Create a server and then call  `start`.
 /// It's that easy. Easy peasy!
 public final class Server {
+    
+    public typealias ConfigurationToken = UUID
+    
+    public var isRunning: Bool {
+        switch state {
+        case .notRunning: return false
+        case .running: return true
+        }
+    }
 	
 	// MARK: - Properties -
 	// MARK: Private
@@ -55,7 +64,8 @@ public final class Server {
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
 	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
-	public func respond(with response: Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+    @discardableResult
+	public func respond(with response: Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) -> ConfigurationToken {
         respond(with: .http { _ in response }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
@@ -69,7 +79,8 @@ public final class Server {
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
 	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
-	public func respond(with response: @escaping () -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+    @discardableResult
+	public func respond(with response: @escaping () -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) -> ConfigurationToken {
         respond(with: .http { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
 	
@@ -83,19 +94,23 @@ public final class Server {
 	///   - rules: The rules to match the request with. You can provide multiple rules using commas.
 	///   - delay: If provided, the response will be delayed by the specified delay when the rules are matched.
 	///   - removeAfterResponding: Whether the configuration should be removed after the response has been made. This is useful for replying with different responses when a request is made more than once. Defaults to false.
-	public func respond(with response: @escaping (Request) -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+    @discardableResult
+	public func respond(with response: @escaping (Request) -> Response, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) -> ConfigurationToken {
         respond(with: .http(response), when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 	}
     
-    public func respond(with response: WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+    @discardableResult
+    public func respond(with response: WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) -> ConfigurationToken {
         respond(with: .webSocket { _ in response }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
     }
     
-    public func respond(with response: @escaping () -> WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+    @discardableResult
+    public func respond(with response: @escaping () -> WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) -> ConfigurationToken {
         respond(with: .webSocket { _ in response() }, when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
     }
     
-    public func respond(with response: @escaping (Request) -> WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) {
+    @discardableResult
+    public func respond(with response: @escaping (Request) -> WebSocketResponse, when rules: Rule..., delay: TimeInterval? = nil, removeAfterResponding: Bool = false) -> ConfigurationToken {
         respond(with: .webSocket(response), when: rules, removeAfterResponding: removeAfterResponding, delay: delay)
     }
 	
@@ -111,6 +126,11 @@ public final class Server {
 		case .notRunning: fatalError("Cannot stop server because it's not running.")
 		}
 	}
+    
+    public func remove(configuration: ConfigurationToken) {
+        guard let index = self.configurations.firstIndex(where: { $0.uuid == configuration }) else { return }
+        self.configurations.remove(at: index)
+    }
 	
 	// MARK: Private
 	
@@ -184,7 +204,7 @@ public final class Server {
             case let .reject(response):
                 sendRegularHTTPResponse(response)
             case let .allow(webSocket):
-                if #available(macOS 10.15, *) { // TODO
+                if #available(iOS 13.0, macOS 10.15, *) { // TODO
                     connection.send(.upgradeWebSocket(upgradeRequest: request))
                     let webSocketConnection = connection.upgradeToWebSocket { frame, connection in
                         webSocket.onFrameReceived(webSocket, frame)
@@ -214,9 +234,10 @@ public final class Server {
 		configurations.remove(at: index)
 	}
 	
-    private func respond(with responseType: Configuration.ResponseType, when rules: [Rule], removeAfterResponding: Bool, delay: TimeInterval?) {
+    private func respond(with responseType: Configuration.ResponseType, when rules: [Rule], removeAfterResponding: Bool, delay: TimeInterval?) -> ConfigurationToken {
         let config = Configuration(responseType: responseType, rules: rules, removeAfterResponding: removeAfterResponding, delay: delay)
 		configurations.append(config)
+        return config.uuid
 	}
 	
 }

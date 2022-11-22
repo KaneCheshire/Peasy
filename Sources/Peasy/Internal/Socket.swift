@@ -32,7 +32,7 @@ final class Socket: Hashable {
 		enableAddressReuse()
 		var address: sockaddr_in6 = .localhost(port: port)
 		let size = MemoryLayout<sockaddr_in6>.size
-		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: size) { Darwin.bind(tag, $0, socklen_t(size)) >= 0 } }
+		let success = withUnsafePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.bind(tag, $0, socklen_t(size)) >= 0 } }
 		guard success else { fatalError(DarwinError().message) }
 		listen()
 		return boundPort()
@@ -52,7 +52,7 @@ final class Socket: Hashable {
 	private func boundPort() -> Int {
 		var size = socklen_t(MemoryLayout<sockaddr_in6>.size)
 		var usedAddress = sockaddr_in6()
-		let success = withUnsafeMutablePointer(to: &usedAddress) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { getsockname(tag, $0, &size) >= 0 } }
+		let success = withUnsafeMutablePointer(to: &usedAddress) { $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { getsockname(tag, $0, &size) >= 0 } }
 		guard success else { fatalError(DarwinError().message) }
 		return Int(usedAddress.sin6_port.bigEndian)
 	}
@@ -60,7 +60,7 @@ final class Socket: Hashable {
 	func accept() -> Socket {
 		var address = sockaddr_in6()
 		var size = socklen_t(MemoryLayout<sockaddr_in6>.size)
-		let tag = withUnsafeMutablePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: Int(size)) { Darwin.accept(self.tag, $0, &size) } }
+		let tag = withUnsafeMutablePointer(to: &address) { $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { Darwin.accept(self.tag, $0, &size) } }
 		guard tag >= 0 else { fatalError(DarwinError().message) }
 		return Socket(tag: tag)
 	}

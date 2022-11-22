@@ -26,12 +26,12 @@ final class FrameParser {
     
     private var stage: Stage = .receivingInfo
     
-    func parse(data: Data) -> Frame? {
+    func parse(data: Data) -> (Frame?, Data?) {
         switch stage {
         case .receivingInfo:
             guard data.count >= 2 else {
                 assertionFailure()
-                return nil
+                return (nil, data)
             }
             let final = (data[0] & 0x80) != 0
             let opCodeRaw = (data[0] & 0x0F)
@@ -68,31 +68,46 @@ final class FrameParser {
         }
     }
     
-    private func process(header: FrameHeader, data: Data, partialPayload: Data = Data()) -> Frame? {
-        let payload = partialPayload + data.enumerated().map { $0.element ^ Data(header.mask)[($0.offset + partialPayload.count) % 4] }
+    private func process(header: FrameHeader, data: Data, partialPayload: Data = Data()) -> (Frame?, Data?) { // TODO: Arg names
+        let payload: Data
+        let nextFrameData: Data?
+        let combinedCount = partialPayload.count + data.count
+        if combinedCount > header.payloadLength {
+            let upper = data.count - (combinedCount - Int(header.payloadLength))
+            let endIndex = data.index(data.startIndex, offsetBy: upper)
+            payload = partialPayload + data[data.startIndex ..< endIndex].enumerated().map { $0.element ^ Data(header.mask)[($0.offset + partialPayload.count) % 4] } // TODO: unmask
+            nextFrameData = Data(data[endIndex...])
+//            nextFrameData = nil
+        } else {
+            payload = partialPayload + data.enumerated().map { $0.element ^ Data(header.mask)[($0.offset + partialPayload.count) % 4] }
+            nextFrameData = nil
+        }
+        let frame: Frame?
         if payload.count == header.payloadLength {
             stage = .receivingInfo
             switch header.opCode {
             case .cont:
-                return .cont
+                frame = .cont
             case .text:
-                return .text(String(data: payload, encoding: .utf8)!)
+                frame = .text(String(data: payload, encoding: .utf8)!)
             case .binary:
-                return .binary(payload)
+                frame = .binary(payload)
             case .close:
                 if let code = payload.closeCode {
-                    return .close(.init(code: code, reason: payload.closeReason))
+                    frame = .close(.init(code: code, reason: payload.closeReason))
+                } else {
+                    frame = .close(nil)
                 }
-                return .close(nil)
             case .ping:
-                return .ping(payload)
+                frame = .ping(payload)
             case .pong:
-                return .pong(payload)
+                frame = .pong(payload)
             }
         } else {
             stage = .receivingPayload(frameHeader: header, partialPayload: payload)
-            return nil
+            frame = nil
         }
+        return (frame, nextFrameData)
     }
 }
 

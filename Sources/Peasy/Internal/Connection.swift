@@ -119,12 +119,17 @@ final class WebSocketConnection: Connection<Frame> {
     }
     
     override func parse(_ data: Data) {
-        guard let frame = parser.parse(data: data) else { return }
-        switch frame {
-        case .close where isClosing:
-            super.close()
-        default:
-            onFrameReceived(frame, self)
+        let output = parser.parse(data: data)
+        if let frame = output.0 {
+            switch frame {
+            case .close where isClosing:
+                super.close()
+            default:
+                onFrameReceived(frame, self)
+            }
+        }
+        if let nextData = output.1 {
+            parse(nextData)
         }
     }
     

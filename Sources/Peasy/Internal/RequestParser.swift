@@ -31,6 +31,7 @@ struct RequestParser {
 	// MARK: Internal
 	
 	mutating func parse(_ data: Data) -> State { // TODO
+//        guard data.isEmpty == false else { return .finished() }
 		switch state {
 		case .notStarted:
 			state = handle(partialHeader: data)

@@ -12,7 +12,7 @@ import CryptoKit
 /// Represents a response to a request that the server can make.
 public struct Response: Hashable {
     
-    @available(macOS 10.15, *)
+    @available(iOS 13.0, macOS 10.15, *)
     static func upgradeWebSocket(upgradeRequest request: Request) -> Self {
         guard let requestKey = request[header: "Sec-WebSocket-Key"] else { fatalError() }
         let acceptData = Data((requestKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").utf8)
