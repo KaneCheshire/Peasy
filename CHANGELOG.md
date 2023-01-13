@@ -4,6 +4,10 @@
 
 ---
 
+## 1.2.1
+
+- Fixes a crash when running the latest Xcode ([#35](https://github.com/KaneCheshire/Peasy/pull/35), [@corteggo](https://github.com/corteggo))
+
 ## 1.2.0
 
 - Added support for letting the system decide what available port to start on. (issue #27, #1) @ChaosCoder
