@@ -24,6 +24,13 @@ public final class Server {
 	// MARK: Public
 	
 	public init() {}
+    
+    deinit {
+        switch state {
+        case .running: stop()
+        case .notRunning: break
+        }
+    }
 	
 	// MARK: - Functions -
 	// MARK: Public
