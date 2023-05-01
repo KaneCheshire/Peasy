@@ -48,7 +48,7 @@ final class EventListener {
 		var events = [kevent(ident: UInt(socket), filter: Int16(EVFILT_READ), flags: UInt16(state), fflags: 0, data: 0, udata: nil)]
 		let eventCount = events.count
 		let success = events.withUnsafeMutableBufferPointer { kevent(queue, $0.baseAddress, Int32(eventCount), nil, 0, nil) >= 0 }
-		guard success else { fatalError(DarwinError().message) }
+		guard state == EV_DELETE || success else { fatalError(DarwinError().message) }
 	}
 	
 	private func events() -> [Int32] {
