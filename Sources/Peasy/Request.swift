@@ -47,9 +47,9 @@ public extension Request {
 	}
 	
 	/// Represents a query parameter in the request.
-	struct QueryParameter: Hashable {
-		let name: String
-		let value: String?
+	public struct QueryParameter: Hashable {
+		public let name: String
+		public let value: String?
 		
 		public init(name: String, value: String?) {
 			self.name = name
